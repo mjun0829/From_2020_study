@@ -14,6 +14,8 @@ void getXY(int (*a)[LENGTH],int &user_x,int &user_y);
 //void status(int (*a)[LENGTH]);
 void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y);
 void fail();
+void victory(int (*a)[LENGTH]);
+
 int main(){
 	//Array "mines" contains only 0 or -1
 	//If (x,y) contains "mine", mine[x-1][y-1] = -1.
@@ -66,6 +68,8 @@ int main(){
     {
         int user_x, user_y;
         getXY(user,user_x,user_y);
+        if(mine[user_x][user_y]==-1)
+            fail();
         field(mine,user,user_x,user_y);
 	        for(int i=0;i<LENGTH;i++) {
 		        for(int j=0;j<LENGTH;j++)  {
@@ -76,7 +80,7 @@ int main(){
                     }
 	            cout<<endl;
 	            }
-        
+        victory(user);    
     }
 
 	return 0;
@@ -186,7 +190,7 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
         {
             cout << path_x.size() << endl;
             if((a[x][y+1]==0)&&(path[x][y+1]==0)) {
-                pin=1;
+                pin=0;
                 path_x.push_back(x);
                 path_y.push_back(y+1);
                 path[x][y+1]=1;
@@ -196,7 +200,7 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
                 continue;
             }
             else if((a[x+1][y]==0)&&(path[x+1][y]==0)) {
-                pin=1;
+                pin=0;
                 path_x.push_back(x+1);
                 path_y.push_back(y);
                 path[x+1][y]=1;
@@ -206,7 +210,7 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
                 continue;
             }
             else if((a[x][y-1]==0)&&(path[x][y-1]==0)) {
-                pin=1;
+                pin=0;
                 path_x.push_back(x);
                 path_y.push_back(y-1);
                 path[x][y-1]=1;
@@ -216,7 +220,7 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
                 continue;
             }
             else if((a[x-1][y]==0)&&(path[x-1][y]==0)) {
-                pin=1;
+                pin=0;
                 path_x.push_back(x-1);
                 path_y.push_back(y);
                 path[x-1][y]=1;
@@ -225,6 +229,9 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
                 cout << "left" << endl;
                 continue;
             }
+            //0이 혼자 있는 경우
+            if(path_x.size()==1)
+                break;
         //back
             else {
             pin=pin+2;
@@ -234,12 +241,9 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
             path_x.push_back(path_x[path_x.size()-pin]);
             path_y.push_back(path_y[path_y.size()-pin]);
             cout << "back" << endl;
+            x=path_x[path_x.size()-1];
+            y=path_y[path_y.size()-1];
             }
-
-            //if(path_x.size()!=1) {
-              //  if((path_x[path_x.size()-1]==x)&&(path_y[path_y.size()-1]==y))
-                //    break;
-                  //  }
         }
     cout << "path_x.size() : " << path_x.size()<<endl;
     for(int i=0;i<path_x.size();i++)
@@ -247,6 +251,27 @@ void field(int (*a)[LENGTH],int (*b)[LENGTH],int x,int y)
     cout << i << " : " << "b[path_x[i]][path_y[i]] : " << b[path_x[i]][path_y[i]] << endl;
         b[path_x[i]][path_y[i]]=0;
         }
+    for(int i=1;i<LENGTH-1;i++) {
+        for(int j=1;j<LENGTH-1;j++) {
+            if(b[i-1][j+1]==0)
+                b[i][j]=a[i][j];
+            else if(b[i][j+1]==0)
+                b[i][j]=a[i][j];
+            else if(b[i+1][j+1]==0)
+                b[i][j]=a[i][j];
+            else if(b[i-1][j]==0)
+                b[i][j]=a[i][j];
+            else if(b[i+1][j]==0)
+                b[i][j]=a[i][j];
+            else if(b[i-1][j-1]==0)
+                b[i][j]=a[i][j];
+            else if(b[i][j-1]==0)
+                b[i][j]=a[i][j];
+            else if(b[i+1][j-1]==0)
+                b[i][j]=a[i][j];
+            }
+        }
+       
     }
 }
 
@@ -256,3 +281,17 @@ void fail()
     cout << "failed!" << endl;
     exit(1);
 }
+
+void victory(int (*a)[LENGTH]){
+    //user를 인자로 받는다
+    //모든 지뢰를 찾았을 때 승리표시
+    int cnt=0;
+    for(int i=1;i<LENGTH-1;i++){
+        for(int j=1;j<LENGTH-1;j++) {
+            if(a[i][j]==-3)
+                cnt++;
+        }
+       }
+    if(cnt==MINES)
+        cout << "victory!" << endl;
+    }
