@@ -20,7 +20,7 @@ int main() {
                 break;
             }
             if(Mine[x][y-1]==0) {std::cout << " O";}
-            if(Mine[x][y-1]==1) {std::cout << " X";}
+            if(Mine[x][y-1]==-1) {std::cout << " X";}
         }
         std::cout << std::endl;
     }
@@ -34,9 +34,10 @@ int makeMine(int (*A)[LENGTH])
         while(1) {
             temp=rand()%64;
             if(A[temp/LENGTH][temp%LENGTH]==0) {
-                A[temp/LENGTH][temp%LENGTH]=1;
+                A[temp/LENGTH][temp%LENGTH]=-1;
                 break;
             }
         }
     }
+
 }

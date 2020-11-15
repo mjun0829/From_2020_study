@@ -3,7 +3,8 @@
 #include <time.h>
 #define Length 8
 #define Mines 10
-int MakeMine(int (*A)[Length]);
+
+void MakeMine(int (*A)[Length]);
 int main(){
 	printf("Size : %d * %d, Mines : %d\n", Length, Length, Mines);
 	int Mine[Length][Length]={0,};
@@ -28,7 +29,7 @@ int main(){
 		printf("\n");
 	}	
 }
-int MakeMine(int (*A)[Length]){
+void MakeMine(int (*A)[Length]){
 	srand(time(NULL));
 	int temp = 0;
 	for(int x = 0; x < Mines ;){
