@@ -136,8 +136,8 @@ int howManyWhiteBlocks(){
     return count;
 }
 
-WhiteUser whiteuser();
-BlackUser blackuser();
+WhiteUser whiteuser;
+BlackUser blackuser;
 
 void whichIsAccessible(){
     //흰색돌 차례일 때
