@@ -1,10 +1,12 @@
-#include "ljs_Othello.hpp"
-#include <iostream>
+#include "ljs_Othello.cpp"
 
 using namespace std;
 
-int main(){
-    Board();
-    display();
-    return 0;
+int main() {
+  Board();
+  display();
+  whichIsAccessible();
+  display();
+
+  return 0;
 }
