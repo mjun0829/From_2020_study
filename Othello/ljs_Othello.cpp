@@ -69,35 +69,40 @@ void Board() {
     //나머지 블록은 비어있는 상태
     else
       board.push_back(Block(i % SIZE, i / SIZE));
-    if (board[i].getBlack()) {
-      cout << i << "번째는 black" << endl;
-    }
   }
 }
 
+WhiteUser whiteuser;
+BlackUser blackuser;
+
 void display() {
+  cout << "────────────────────────" << endl;
+  cout << "● : " << whiteuser.getWhiteBlocks() << " ────────── ○ : " << blackuser.getBlackBlocks() << endl<<endl;
   for (int i=SIZE-1;i>=0;i--) {
     cout << i << " ";
     for(int j=0;j<SIZE;j++){
     if (board[8*i+j].getEmpty()) {
       if (board[8*i+j].getAccess())
-        cout << "_  ";
+        cout << "□  ";
       else
-        cout << "E  ";
+        cout << "   ";
     } else {
       if (board[8*i+j].getWhite())
-        cout << "W  ";
+        cout << "●  ";
       if (board[8*i+j].getBlack())
-        cout << "B  ";
+        cout << "○  ";
     }
     if (j == 7)
       cout << endl;
-  }
-  cout << endl;
+    }
   }
   cout << "  ";
+
   for(int i=0;i<8;i++)
-  cout << i << "  ";
+    cout << i << "  ";
+  
+  cout << endl;
+  cout << "────────────────────────" << endl<<endl;
 }
 
 WhiteUser::WhiteUser() {
@@ -107,7 +112,7 @@ WhiteUser::WhiteUser() {
 }
 
 void WhiteUser::victory() {
-  cout << "하얀돌 승리!" << endl;
+  cout << ">> 하얀돌 승리!" << endl;
   display();
   exit(-1);
 }
@@ -119,7 +124,7 @@ BlackUser::BlackUser() {
 }
 
 void BlackUser::victory() {
-  cout << "검은돌 승리!" << endl;
+  cout << ">> 검은돌 승리!" << endl;
   display();
   exit(-1);
 }
@@ -134,8 +139,6 @@ int howManyWhiteBlocks() {
   return count;
 }
 
-WhiteUser whiteuser;
-BlackUser blackuser;
 
 void whichIsAccessible() {
   if (whiteuser.getTurn()) {
@@ -146,7 +149,6 @@ void whichIsAccessible() {
         if (checkBlack(i, 9) || checkBlack(i, 8) || checkBlack(i, 7) ||
             checkBlack(i, 1) || checkBlack(i, -1) || checkBlack(i, -7) ||
             checkBlack(i, -8) || checkBlack(i, -9)) {
-          cout << i << endl;
           board[i].access();
         } else
           board[i].deny();
@@ -234,28 +236,27 @@ void howManyAccessibleBlocks() {
 
 void insertBlock() {
   while (1) {
+    howManyAccessibleBlocks();
     if (whiteuser.getTurn())
-      cout << "흰색 돌 차례입니다." << endl;
+      cout << ">> 흰색 돌 차례입니다." << endl;
     else
-      cout << "검정색 돌 차례입니다." << endl;
+      cout << ">> 검정색 돌 차례입니다." << endl;
     if (accessibleBlocks == 0) {
-      cout << "둘 곳이 없어서 턴을 넘깁니다." << endl;
+      cout << ">> 둘 곳이 없어서 턴을 넘깁니다." << endl;
       break;
     }
 
-    cout << "뒤집을 돌의 좌표 X Y를 입력해주세요." << endl;
+    cout << ">> 뒤집을 돌의 좌표 X Y를 입력해주세요." << endl;
+    cout << "<< ";
     int _x, _y;
     cin >> _x >> _y;
     selected = 8 * _y + _x;
-    blocks++;
-    cout << "selected : " << selected << endl; 
-    cout << "board[selected].getAccess()" << board[selected].getAccess() << endl;
 
     if (!board[selected].getAccess()){
-      cout << "둘 수 없는 자리입니다. " << endl;
+      cout << ">> 둘 수 없는 자리입니다. " << endl;
       continue;
     }
-
+    blocks++;
     reverseBlock();
     whiteuser.setWhiteBlocks(howManyWhiteBlocks());
     blackuser.setBlackBlocks(blocks-howManyWhiteBlocks());
@@ -291,7 +292,7 @@ void reverseBlock() {
       reverseOneBlock(selected,-8);
 
     if(checkBlack(selected, -9))
-      reverseOneBlock(selected,-8);
+      reverseOneBlock(selected,-9);
   }
 
   if (blackuser.getTurn()) {
@@ -319,30 +320,42 @@ void reverseBlock() {
       reverseOneBlock(selected,-8);
 
     if(checkWhite(selected, -9))
-      reverseOneBlock(selected,-8);
+      reverseOneBlock(selected,-9);
   }
 }
 
 void reverseOneBlock(int now,int jump){
   if (whiteuser.getTurn()){
-    while(1){
-    if(board[now+jump].getBlack())
-      board[now+jump].setwhite();
-    else{
-      board[now+jump].setblack();
-      break;
-    }
+    while(1) {
+      if(board[now+jump].getBlack())
+        board[now+jump].setwhite();
+      else
+        break;
+      now=now+jump;
     }
   }
 
-    if (blackuser.getTurn()){
+  if (blackuser.getTurn()){
     while(1){
-    if(board[now+jump].getWhite())
-      board[now+jump].setblack();
-    else{
-      board[now+jump].setwhite();
-      break;
+      if(board[now+jump].getWhite())
+        board[now+jump].setblack();
+      else
+        break;
+      now=now+jump;
     }
+  }
+}
+
+void victory(){
+  if(blocks==SIZE*SIZE){
+    if(whiteuser.getWhiteBlocks()>blackuser.getBlackBlocks())
+      whiteuser.victory();
+    else if(whiteuser.getWhiteBlocks()<blackuser.getBlackBlocks())
+      blackuser.victory();
+    else {
+      cout << ">> 무승부!" << endl;
+      display();
+      exit(-1);
     }
   }
 }

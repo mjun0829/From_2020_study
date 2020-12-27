@@ -109,7 +109,6 @@ bool isNextWall(int now, int jump);
 // 내 차례인데 둘 돌이 없다면 바로 다음턴으로 넘김
 void howManyAccessibleBlocks();
 
-<<<<<<< HEAD
 //둘 돌의 입력받는 함수
 void insertBlock();
 
@@ -119,9 +118,4 @@ void reverseBlock();
 // 입력받은 돌을 하나씩 뒤집어 주는 함수
 void reverseOneBlock(int now,int jump);
 
-=======
-//둘 돌의 입력을 받고, 돌을 뒤집는 함수
-void insertBlock();
-
->>>>>>> 96768d4b751eb3377e43ea83cb93794660559570
 #endif
