@@ -6,7 +6,7 @@ int main() {
   Board();
   whichIsAccessible();
   display();
-  
+
   while(1){
     insertBlock();
     whichIsAccessible();

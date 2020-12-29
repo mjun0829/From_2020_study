@@ -25,7 +25,6 @@ Block::Block(int newX, int newY) {
 }
 
 Block::Block(bool white, bool black, int newX, int newY) {
-  assert(white ^ black == 1);
   is_empty = 0;
   is_white = white;
   is_black = black;
@@ -100,7 +99,7 @@ void display() {
 
   for(int i=0;i<8;i++)
     cout << i << "  ";
-  
+
   cout << endl;
   cout << "────────────────────────" << endl<<endl;
 }

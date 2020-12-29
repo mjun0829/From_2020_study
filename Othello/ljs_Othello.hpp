@@ -3,36 +3,45 @@
 
 //한 칸에 대해서 비어있는지, 하얀 돌인지, 검은 돌인지 정보를 포함하고 있는
 //클래스. is_empty, is_white, is_black 중 에서 하나만 true.
+
 class Block {
-private:
-  bool is_empty;
-  bool is_accessible; // 여기에 돌을 둘 수 있는가?
-  bool is_white;
-  bool is_black;
-  int x;
-  int y;
+  private:
+    bool is_empty;
+    bool is_white;
+    bool is_black;
+    bool is_accessible; // 여기에 돌을 둘 수 있는가?
+    int x;
+    int y;
 
-public:
-  // Default constructor
-  //중앙 4칸을 제외하고는 초기에 empty=1
-  Block(int newX, int newY);
+  public:
+    //중앙 4칸을 제외하고는 초기에 empty=1
+    Block(int newX, int newY);
 
-  //중앙 4칸을 만들 때 쓰는 constructor
-  Block(bool white, bool black, int newX, int newY);
+    //중앙 4칸을 만들 때 쓰는 constructor
+    Block(bool white, bool black, int newX, int newY);
 
-  void setwhite();
-  void setblack();
-  // Make "is_accessible" true
-  void access();
-  // Make "is_accessible" false
-  void deny();
+    void setwhite();
+    void setblack();
+    // Make "is_accessible" true
+    void access();
+    // Make "is_accessible" false
+    void deny();
 
-  bool getEmpty();
-  bool getWhite();
-  bool getBlack();
-  bool getAccess() { return is_accessible; }
-  int getX() { return x; }
-  int getY() { return y; }
+    bool getEmpty();
+    bool getWhite();
+    bool getBlack();
+    bool getAccess() { return is_accessible; }
+    int getX() { return x; }
+    int getY() { return y; }
+};
+
+class BoardManager {
+  private:
+    vector<vector<Block>> Board;
+
+  public:
+    vector<vector<Block>> InitBoard();
+    void BlockDisplay(vector<vector<Block>> _Board);
 };
 
 // 64개의 칸을 생성자를 통해서 만들고 이를 vector로 관리.
@@ -42,6 +51,23 @@ void Board();
 void display();
 
 // 흰 돌을 먼저 둠.
+
+class User {
+  private:
+    int Blocks;
+    bool IsVictory;
+    bool Turn;
+    bool IsBlack;
+    bool IsWhite;
+
+  public:
+    User();
+    void Victory();
+    void GetBlocks() const;
+    bool GetTurn() const;
+    void SetBlocks(int NewBlocks) { Blocks = NewBlocks; };
+    void ChangeTurn() { Turn = !Turn; }
+};
 
 //흰 돌 두는 사람
 class WhiteUser {
@@ -64,7 +90,7 @@ public:
   // Mutator
   void setWhiteBlocks(int newBlocks) { whiteBlocks = newBlocks; }
   //차례 넘기기
-  void changeTurn() { turn = turn ^ 1; }
+  void changeTurn() { turn = !turn; }
 };
 
 //검은 돌 두는 사람
@@ -90,6 +116,8 @@ public:
   //차례 넘기기
   void changeTurn() { turn = turn ^ 1; }
 };
+
+
 
 //돌의 개수 찾는 함수
 //검정돌의 개수는 현재 둔 돌의 개수(blocks)에서 빼는 거로.
