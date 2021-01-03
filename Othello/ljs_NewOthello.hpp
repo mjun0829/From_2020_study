@@ -58,36 +58,57 @@ private:
 
 public:
   //게임 시작 전 판을 그리는 함수
-  vector<vector<Block>> InitBoard(int NewSize);
-  void SetBlocks(int NewBlocks) { Blocks = NewBlocks; }
-  void SetSelected(int NewX, int NewY) {
+  static void InitBoard(int NewSize);
+
+  static void SetBlocks(int NewBlocks) { Blocks = NewBlocks; }
+  static void SetSelected(int NewX, int NewY) {
     SelectedX = NewX;
     SelectedY = NewY;
   }
+  static void SetAccessibleBlocks(int NewBlocks){
+      AccessibleBlocks = NewBlocks;
+  }
 
   // Accessors
-  vector<vector<Block>> GetBoard();
-  int GetX() const;
-  int GetY() const;
-  int GetSize() const;
-  int GetAccessibleBlocks() const;
+  static vector<vector<Block>> GetBoard() { return Board; }
+  static int GetX() { return SelectedX; }
+  static int GetY() { return SelectedY; }
+  static int GetBlocks() { return Blocks; }
+  static int GetSize() { return Size; }
+  static int GetAccessibleBlocks() { return AccessibleBlocks; }
 
   //판이 어떤 상황인지 보여주는 함수
-  void BlockDisplay(vector<vector<Block>> Board) const;
+  static void BlockDisplay(vector<vector<Block>> Board);
 
   //어떤 블록에 돌을 놓을 수 있는지 각 블록의 IsAccessible을 바꾸는 함수
-  void WhichIsAccessible(vector<vector<Block>> Board);
+  static void WhichIsAccessible(vector<vector<Block>> Board);
 
-  // Now에서 JumpX, JumpY 방향으로 검정돌 혹은 흰돌이 있는지 판별하는 함수
+  // 얼마나 많은 블록이 Accessible 한지 찾아내는 함수
+  static int HowManyAccessibleBlocks(vector<vector<Block>> Board);
+
+  // Now에서 JumpX, JumpY 방향으로 해당 Color Block이 있는지 판별하는 함수
   // 8방향중에서 하나도 없다면 그 블록의 IsAccessible=false
-  bool CheckBlack(int Now, int JumpX, int JumpY);
-  bool CheckWhite(int Now, int JumpX, int JumpY);
+  static bool CheckColor(int NowX, int NowY, int JumpX, int JumpY,int Color);
 
-  // Now에서 JumpX, JumpY 만큼 거리에 있는 돌이 접근할 수 있는지 판별하는 함수
-  bool IsNextWall(int Now, int JumpX, int JumpY, vector<vector<Block>> Board);
+  // 8방향 중 한 방향이라도 흰/검정색이 있으면 true 반환
+  static bool CheckColor(int NowX, int NowY,int Color);
 
-  //(X,Y)에 돌을 두고 해당하는 돌을 뒤집어주는 함수
-  void ReverseBlocks(int X, int Y, vector<vector<Block>> Board);
+  // (NowX, NowY) 위치의 돌을 제외하고 jump방향으로 해당 색이 나올 때까지 찾음.
+  // 발견되면 true, 없으면 false
+  static bool FindMostCloseColor(int NowX, int NowY, int JumpX, int JumpY, int Color);
+
+  // Now+Jump >= Size 인지 확인한다.
+  // 넘어가면 Segmentation fault 발생!
+  static bool IsOverSize(int NowX, int NowY, int JumpX, int JumpY);
+
+  // 해당 위치가 EMPTY인지 확인한다.
+  static bool CheckEmpty(int NowX, int NowY);
+
+  // (X,Y)에 돌을 두고 해당하는 돌을 뒤집어주고, 아래 8방향을 뒤집는 함수를 호출하는 함수
+  static void ReverseBlocks(int X, int Y);
+
+  // 해당 방향에 있는 돌들을 전부 뒤집는 함수
+  static void ReverseBlocks(int X, int Y, int WayX, int WayY,int Color,vector<vector<Block>> Board);
 };
 
 class User {
@@ -107,13 +128,13 @@ private:
 public:
   //흰 돌의 Turn=true, 검은 돌의 Turn=false
   User(int NewBlocks, bool NewTurn, int NewColor);
-  int GetBlocks() const;
-  bool GetVictory() const;
-  bool GetTurn() const;
-  int GetColor() const;
+  int GetBlocks() const { return Blocks; }
+  bool GetVictory() const { return IsVictory; }
+  bool GetTurn() const { return Turn; }
+  int GetColor() const { return Color; }
 
-  void SetBlocks(int NewBlocks);
-  void SetVictory(bool NewVictory);
+  void SetBlocks(int NewBlocks) { Blocks = NewBlocks; }
+  void SetVictory(bool NewVictory) { IsVictory = NewVictory; }
 
   //턴을 바꾸는 함수
   void ChangeTurn() { Turn = !Turn; }
@@ -128,14 +149,25 @@ private:
   static User WhiteUser;
 
 public:
+  static User GetBlackUser() { return BlackUser; }
+  static User GetWhiteUser() { return WhiteUser; }
+
+  static void InitUser() {
+    BlackUser = User(2, false, BLACK);
+    WhiteUser = User(2, true, WHITE);
+  }
   // Color Block이 얼마나 많이 있는지 반환하는 함수
-  int HowManyWhiteBlocks(int Color);
+  static int HowManyBlocks(int Color);
 
   //유저에게서 블록 위치 하나를 입력받는 함수
-  void InsertOneBlock();
+  static void InsertOneBlock();
 
   // Blocks=64 일 때, User의 Blocks가 더 많은 사람이 승리
-  void CheckVictory();
+  // 무승부라면 EMPTY를, 아니라면 승리한 사람의 색을 반환
+  static int CheckVictory();
+
+  // CheckVictory의 반환값을 통해서 승리 문구를 표시하고 게임 종료.
+  static void EndGame(int Color);
 };
 
 #endif
