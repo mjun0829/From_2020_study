@@ -65,8 +65,8 @@ public:
     SelectedX = NewX;
     SelectedY = NewY;
   }
-  static void SetAccessibleBlocks(int NewBlocks){
-      AccessibleBlocks = NewBlocks;
+  static void SetAccessibleBlocks(int NewBlocks) {
+    AccessibleBlocks = NewBlocks;
   }
 
   // Accessors
@@ -88,14 +88,15 @@ public:
 
   // Now에서 JumpX, JumpY 방향으로 해당 Color Block이 있는지 판별하는 함수
   // 8방향중에서 하나도 없다면 그 블록의 IsAccessible=false
-  static bool CheckColor(int NowX, int NowY, int JumpX, int JumpY,int Color);
+  static bool CheckColor(int NowX, int NowY, int JumpX, int JumpY, int Color);
 
   // 8방향 중 한 방향이라도 흰/검정색이 있으면 true 반환
-  static bool CheckColor(int NowX, int NowY,int Color);
+  static bool CheckColor(int NowX, int NowY, int Color);
 
   // (NowX, NowY) 위치의 돌을 제외하고 jump방향으로 해당 색이 나올 때까지 찾음.
   // 발견되면 true, 없으면 false
-  static bool FindMostCloseColor(int NowX, int NowY, int JumpX, int JumpY, int Color);
+  static bool FindMostCloseColor(int NowX, int NowY, int JumpX, int JumpY,
+                                 int Color);
 
   // Now+Jump >= Size 인지 확인한다.
   // 넘어가면 Segmentation fault 발생!
@@ -104,11 +105,13 @@ public:
   // 해당 위치가 EMPTY인지 확인한다.
   static bool CheckEmpty(int NowX, int NowY);
 
-  // (X,Y)에 돌을 두고 해당하는 돌을 뒤집어주고, 아래 8방향을 뒤집는 함수를 호출하는 함수
+  // (X,Y)에 돌을 두고 해당하는 돌을 뒤집어주고, 아래 8방향을 뒤집는 함수를
+  // 호출하는 함수
   static void ReverseBlocks(int X, int Y);
 
   // 해당 방향에 있는 돌들을 전부 뒤집는 함수
-  static void ReverseBlocks(int X, int Y, int WayX, int WayY,int Color,vector<vector<Block>> Board);
+  static void ReverseBlocks(int X, int Y, int WayX, int WayY, int Color,
+                            vector<vector<Block>> Board);
 };
 
 class User {
