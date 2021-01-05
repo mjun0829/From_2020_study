@@ -18,32 +18,48 @@ Block::Block(int NewStatus, int NewX, int NewY) {
   y = NewY;
 }
 
+BoardManager::BoardManager(int NewSize) {
+  Size = NewSize;
+  InitBoard(NewSize);
+  Blocks = 4;
+  SelectedX = 0;
+  SelectedY = 0;
+  AccessibleBlocks = 4;
+  TurnColor = WHITE;
+}
+
 void BoardManager::InitBoard(int NewSize) {
   vector<vector<Block>> NewBoard;
-  Size = NewSize;
   for (int i = 0; i < Size; i++) {
+    vector<Block> TempBoard;
     for (int j = 0; j < Size; j++) {
       if (i == 3 && j == 3)
-        NewBoard[i].push_back(Block(WHITE, 3, 3));
+        TempBoard.push_back(Block(WHITE, 3, 3));
       else if (i == 4 && j == 4)
-        NewBoard[i].push_back(Block(WHITE, 4, 4));
+        TempBoard.push_back(Block(WHITE, 4, 4));
       else if (i == 3 && j == 4)
-        NewBoard[i].push_back(Block(WHITE, 3, 4));
+        TempBoard.push_back(Block(BLACK, 3, 4));
       else if (i == 4 && j == 3)
-        NewBoard[i].push_back(Block(WHITE, 4, 3));
+        TempBoard.push_back(Block(BLACK, 4, 3));
       else
-        NewBoard[i].push_back(Block(EMPTY, i, j));
+        TempBoard.push_back(Block(EMPTY, i, j));
     }
+    NewBoard.push_back(TempBoard);
   }
   Board = NewBoard;
 }
 
-void BoardManager::BlockDisplay(vector<vector<Block>> Board) {
+void BoardManager::BlockDisplay() {
+  cout << "Blocks : " << Blocks << endl;
   for (int i = Size - 1; i >= 0; i--) {
-    cout << i << " ";
+    cout << i << "  ";
     for (int j = 0; j < Size; j++) {
       if (Board[i][j].GetStatus() == EMPTY) {
-        cout << "   ";
+        if (Board[i][j].GetAccess()) {
+          cout << "□  ";
+        } else {
+          cout << "   ";
+        }
       } else if (Board[i][j].GetStatus() == WHITE) {
         cout << "●  ";
       } else if (Board[i][j].GetStatus() == BLACK) {
@@ -58,57 +74,30 @@ void BoardManager::BlockDisplay(vector<vector<Block>> Board) {
       }
     }
   }
-
+  cout << " ";
   for (int i = 0; i < Size; i++) {
-    cout << i << "  ";
+    cout << "  " << i;
   }
   cout << endl;
 }
 
-void BoardManager::WhichIsAccessible(vector<vector<Block>> Board) {
-  if (UserManager::GetBlackUser().GetTurn()) {
-    for (int i = 0; i < Size; i++) {
-      for (int j = 0; j < Size; j++) {
-        if (Board[i][j].GetStatus() == EMPTY) {
-          Board[i][j].Deny();
-        } else {
-          if (CheckColor(j, i, WHITE)) {
-            Board[i][j].Access();
-          } else {
-            Board[i][j].Deny();
-          }
-        }
-      }
-    }
-  }
-
-  if (UserManager::GetWhiteUser().GetTurn()) {
-    for (int i = 0; i < Size; i++) {
-      for (int j = 0; j < Size; j++) {
-        if (Board[i][j].GetStatus() == EMPTY) {
-          Board[i][j].Deny();
-        } else {
-          if (CheckColor(j, i, BLACK)) {
-            Board[i][j].Access();
-          } else {
-            Board[i][j].Deny();
-          }
-        }
-      }
-    }
-  }
-}
-
-int BoardManager::HowManyAccessibleBlocks(vector<vector<Block>> Board) {
-  int Result = 0;
+void BoardManager::WhichIsAccessible(int Color) {
+  int HowManyAccessibleBlocks = 0;
   for (int i = 0; i < Size; i++) {
     for (int j = 0; j < Size; j++) {
-      if (Board[i][j].GetAccess()) {
-        Result++;
+      if (Board[i][j].GetStatus() != EMPTY) {
+        Board[i][j].Deny();
+      } else {
+        if (CheckColor(j, i, Color)) {
+          Board[i][j].Access();
+          HowManyAccessibleBlocks++;
+        } else {
+          Board[i][j].Deny();
+        }
       }
     }
   }
-  return Result;
+  AccessibleBlocks = HowManyAccessibleBlocks;
 }
 
 bool BoardManager::CheckColor(int NowX, int NowY, int Color) {
@@ -131,7 +120,9 @@ bool BoardManager::CheckColor(int NowX, int NowY, int JumpX, int JumpY,
   } else if (CheckEmpty(NowX + JumpX, NowY + JumpY)) {
     return false;
   } else if (Board[NowY + JumpY][NowX + JumpX].GetStatus() != Color) {
-    return FindMostCloseColor(NowX, NowY, JumpX, JumpY, Color);
+    return FindMostCloseColor(NowX + JumpX, NowY + JumpY, JumpX, JumpY, Color);
+  } else {
+    return false;
   }
 }
 
@@ -140,42 +131,44 @@ bool BoardManager::IsOverSize(int NowX, int NowY, int JumpX, int JumpY) {
          NowY + JumpY < 0;
 }
 
+bool BoardManager::CheckEmpty(int NowX, int NowY) {
+  if (Board[NowY][NowX].GetStatus() == EMPTY) {
+    return true;
+  }
+  return false;
+}
+
 bool BoardManager::FindMostCloseColor(int NowX, int NowY, int JumpX, int JumpY,
                                       int Color) {
   int TempX = NowX + JumpX;
   int TempY = NowY + JumpY;
   while (true) {
-    if (Board[TempY][TempX].GetStatus() == Color) {
+    if (!IsValidBlock(TempX, TempY)) {
+      return false;
+    } else if (CheckEmpty(TempX, TempY)) {
+      return false;
+    } else if (Board[TempY][TempX].GetStatus() != Color) {
       TempX += JumpX;
       TempY += JumpY;
       continue;
-    } else if (Board[TempY][TempX].GetStatus() == EMPTY) {
-      return false;
     } else {
       return true;
     }
   }
 }
 
-void BoardManager::ReverseBlocks(int X, int Y) {
+void BoardManager::ReverseBlocks(int Color) {
   int WayX[8] = {1, 0, -1, 1, -1, 1, 0, -1};
   int WayY[8] = {1, 1, 1, 0, 0, -1, -1, -1};
-  int Color;
-  if (UserManager::GetWhiteUser().GetTurn()) {
-    Color = WHITE;
-  } else {
-    Color = BLACK;
-  }
-  Board[Y][X].SetStatus(Color);
+  Board[SelectedY][SelectedX].SetStatus(Color);
   for (int i = 0; i < 8; i++) {
-    if (CheckColor(X, Y, Color)) {
-      ReverseBlocks(X, Y, WayX[i], WayY[i], Color, Board);
+    if (CheckColor(SelectedX, SelectedY, WayX[i], WayY[i], Color)) {
+      ReverseBlocks(SelectedX, SelectedY, WayX[i], WayY[i], Color);
     }
   }
 }
 
-void BoardManager::ReverseBlocks(int X, int Y, int WayX, int WayY, int Color,
-                                 vector<vector<Block>> Board) {
+void BoardManager::ReverseBlocks(int X, int Y, int WayX, int WayY, int Color) {
   int CursorX = X + WayX;
   int CursorY = Y + WayY;
   while (true) {
@@ -189,6 +182,36 @@ void BoardManager::ReverseBlocks(int X, int Y, int WayX, int WayY, int Color,
   }
 }
 
+bool BoardManager::IsValidBlock(int X, int Y) {
+  if (X >= 0 && X < Size && Y >= 0 && Y < Size) {
+    return true;
+  }
+  return false;
+}
+
+void BoardManager::InsertOneBlock() {
+  while (true) {
+    cout << ">> 돌의 x,y 좌표를 입력해주세요." << endl;
+    int UserX, UserY;
+    cin >> UserX >> UserY;
+    if ((IsValidBlock(UserX, UserY)) && Board[UserY][UserX].GetAccess()) {
+      SelectedX = UserX;
+      SelectedY = UserY;
+      Blocks++;
+      break;
+    } else {
+      cout << ">> 유효하지않은 좌표입니다." << endl;
+    }
+  }
+}
+
+User::User() {
+  Blocks = 0;
+  IsVictory = false;
+  Turn = false;
+  Color = EMPTY;
+}
+
 User::User(int NewBlocks, bool NewTurn, int NewColor) {
   Blocks = NewBlocks;
   IsVictory = false;
@@ -196,12 +219,11 @@ User::User(int NewBlocks, bool NewTurn, int NewColor) {
   Color = NewColor;
 }
 
-int UserManager::HowManyBlocks(int Color) {
+int BoardManager::HowManyColorBlocks(int TargerColor) {
   int Count = 0;
-  vector<vector<Block>> TempBoard = BoardManager::GetBoard();
-  for (int i = 0; i < BoardManager::GetSize(); i++) {
-    for (int j = 0; j < BoardManager::GetSize(); j++) {
-      if (TempBoard[i][j].GetStatus() == WHITE) {
+  for (int i = 0; i < Size; i++) {
+    for (int j = 0; j < Size; j++) {
+      if (Board[i][j].GetStatus() == TargerColor) {
         Count++;
       }
     }
@@ -209,39 +231,11 @@ int UserManager::HowManyBlocks(int Color) {
   return Count;
 }
 
-void UserManager::InsertOneBlock() {
-  while (true) {
-    vector<vector<Block>> Board = BoardManager::GetBoard();
-    BoardManager::SetAccessibleBlocks(
-        BoardManager::HowManyAccessibleBlocks(Board));
-    if (WhiteUser.GetTurn()) {
-      cout << ">> 흰색 돌 차례입니다." << endl;
-    } else {
-      cout << ">> 검정색 돌 차례입니다." << endl;
-    }
-    if (BoardManager::GetAccessibleBlocks() == 0) {
-      cout << ">> 둘 곳이 없어서 턴을 넘깁니다." << endl;
-      break;
-    }
-
-    cout << ">> 뒤집을 돌의 좌표 X Y를 입력해주세요." << endl;
-    cout << "<< ";
-    int UserX, UserY;
-    cin >> UserX >> UserY;
-
-    if (!Board[UserY][UserX].GetAccess()) {
-      cout << ">> 둘 수 없는 자리입니다. " << endl;
-      continue;
-    }
-
-    int Blocks = BoardManager::GetBlocks();
-    BoardManager::SetBlocks(Blocks++);
-    BoardManager::ReverseBlocks(UserX, UserY);
-    WhiteUser.SetBlocks(HowManyBlocks(WHITE));
-    BlackUser.SetBlocks(HowManyBlocks(BLACK));
-    WhiteUser.ChangeTurn();
-    BlackUser.ChangeTurn();
-    break;
+void UserManager::DisplayTurn(int TurnColor) {
+  if (TurnColor == BLACK) {
+    cout << ">> 검정색 돌 차례입니다." << endl;
+  } else {
+    cout << ">> 흰색 돌 차례 입니다." << endl;
   }
 }
 
@@ -257,7 +251,7 @@ int UserManager::CheckVictory() {
   }
 }
 
-void UserManager::EndGame(int Color) {
+void UserManager::EndGame(BoardManager BoardManager, int Color) {
   if (Color == EMPTY) {
     cout << "무승부!" << endl;
   } else if (Color == WHITE) {
@@ -265,5 +259,21 @@ void UserManager::EndGame(int Color) {
   } else {
     cout << "검정돌 승리!" << endl;
   }
-  BoardManager::BlockDisplay(BoardManager::GetBoard());
+  BoardManager.BlockDisplay();
+}
+
+void UserManager::DisplayWarning() {
+  cout << "둘 곳이 없어서 턴을 넘깁니다." << endl;
+}
+
+void UserManager::DisplayScore() {
+  cout << "● : " << WhiteUser.GetBlocks() << "  ○ : " << BlackUser.GetBlocks()
+       << endl;
+}
+
+void UserManager::RefreshBlocks(BoardManager BoardManager) {
+  int WhiteBlocks = BoardManager.HowManyColorBlocks(WHITE);
+  int BlackBlocks = BoardManager.HowManyColorBlocks(BLACK);
+  WhiteUser.SetBlocks(WhiteBlocks);
+  BlackUser.SetBlocks(BlackBlocks);
 }
