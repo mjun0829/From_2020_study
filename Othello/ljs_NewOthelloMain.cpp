@@ -1,5 +1,7 @@
 #include "ljs_NewOthello.hpp"
 
+using namespace Othello;
+
 int main() {
   BoardManager BoardManager(8);
   UserManager UserManager;

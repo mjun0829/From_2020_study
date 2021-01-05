@@ -3,7 +3,7 @@
 
 #include <vector>
 using std::vector;
-
+namespace Othello {
 //한 칸에 상태를 나타내는 열거형
 // Block 클래스의 status 에 들어감.
 enum Color { WHITE, BLACK, EMPTY };
@@ -215,5 +215,6 @@ public:
   // 유저들의 Blocks를 갱신하는 함수
   void RefreshBlocks(BoardManager BoardManager);
 };
+} // namespace Othello
 
 #endif

@@ -2,7 +2,12 @@
 #include <iostream>
 #include <vector>
 
-using namespace std;
+using std::cin;
+using std::cout;
+using std::endl;
+using std::vector;
+
+using namespace Othello;
 
 Block::Block(int NewX, int NewY) {
   Status = EMPTY;
