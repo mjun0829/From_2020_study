@@ -4,27 +4,36 @@ using namespace Othello;
 
 int main() {
   BoardManager BoardManager(8);
+  AIBoardManager AIBoardManager(BLACK,BoardManager);
+
   UserManager UserManager;
-  BoardManager.WhichIsAccessible(BoardManager.GetTurnColor());
+  AIBoardManager.WhichIsAccessible(AIBoardManager.GetTurnColor());
+
   while (1) {
     UserManager.DisplayScore();
-    BoardManager.BlockDisplay();
-    if (BoardManager.IsBlocks64()) {
+    AIBoardManager.BlockDisplay();
+    if (AIBoardManager.IsBlocks64()) {
       int WinColor = UserManager.CheckVictory();
-      UserManager.EndGame(BoardManager, WinColor);
+      UserManager.EndGame(AIBoardManager, WinColor);
       break;
     }
-    UserManager.DisplayTurn(BoardManager.GetTurnColor());
-    if (BoardManager.GetAccessibleBlocks() > 0) {
-      BoardManager.InsertOneBlock();
-      BoardManager.ReverseBlocks(BoardManager.GetTurnColor());
+
+    UserManager.DisplayTurn(AIBoardManager.GetTurnColor());
+    
+    if (AIBoardManager.GetAccessibleBlocks() > 0) {
+      if(AIBoardManager.IsAITurn()){
+        AIBoardManager.Algorithm();
+      } else {
+      AIBoardManager.InsertOneBlock();
+      }
+      AIBoardManager.ReverseBlocks(AIBoardManager.GetTurnColor());
     } else {
       UserManager.DisplayWarning();
     }
     UserManager.ChangeTurn();
-    BoardManager.ChangeTurn();
-    UserManager.RefreshBlocks(BoardManager);
-    BoardManager.WhichIsAccessible(BoardManager.GetTurnColor());
+    AIBoardManager.ChangeTurn();
+    UserManager.RefreshBlocks(AIBoardManager);
+    AIBoardManager.WhichIsAccessible(AIBoardManager.GetTurnColor());
   }
 
   return 0;

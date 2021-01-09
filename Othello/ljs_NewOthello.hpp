@@ -3,6 +3,7 @@
 
 #include <vector>
 using std::vector;
+
 namespace Othello {
 //한 칸에 상태를 나타내는 열거형
 // Block 클래스의 status 에 들어감.
@@ -40,6 +41,8 @@ public:
   int GetY() const { return y; }
 };
 
+// 64개의 Block을 가지고있는 벡터를 저장하고 있는 클래스
+// 이 벡터를 조작하는 함수들은 이 클래스에 들어있음.
 class BoardManager {
 private:
   // 64개의 칸을 저장하는 벡터
@@ -63,6 +66,7 @@ private:
   int TurnColor;
 
 public:
+  BoardManager(BoardManager& NewBoardManager);
   BoardManager(int NewSize);
   // 게임 시작 전 판을 그리는 함수
   void InitBoard(int NewSize);
@@ -141,6 +145,7 @@ public:
   }
 };
 
+// 유저 정보를 담고 있는 클래스
 class User {
 private:
   //판 위에 유저의 색에 해당하는 돌의 개수
@@ -171,6 +176,8 @@ public:
   void ChangeTurn() { Turn = !Turn; }
 };
 
+//유저 간 상호작용을 할 수 있게 하는 함수를 가지고 있는 클래스.
+//유저 두 명을 클래스의 private 멤버로 가지고 있음.
 class UserManager {
 private:
   //유저의 color=BLACK
@@ -214,6 +221,41 @@ public:
 
   // 유저들의 Blocks를 갱신하는 함수
   void RefreshBlocks(BoardManager BoardManager);
+};
+
+// User의 색과 AIUserManager의 AIColor 와 일치하는 유저가 AI
+// 이 유저는 따로 InsertOneBlock 함수를 거치지 않고
+// 현재 선택된 칸의 x,y 좌표인 SelectedX, SelectedY를 내부 알고리즘을 통하여
+// 선택한 뒤 턴을 넘김.
+// 그러나 AccessibleBlocks==0 이라면 User와 동일하게 턴을 바로 넘김.
+// 칸 마다 우선 순위를 둬서 현재 AccessibleBlocks 들 중 가장 우선 순위가 높은 블록을
+// 선택하는 방식으로 진행한다.
+// 우선 순위가 제일 높은 블록이 2개 이상이라면 가장 돌을 많이 뒤집는 블록을 선택한다.
+// 이 개수 또한 동일하다면 그 중 랜덤으로 선택.
+class AIBoardManager : public BoardManager{
+private:
+  int AIColor;
+  vector<vector<int>> PriorityBoard;
+public:
+  AIBoardManager(int NewAIColor,BoardManager NewBoardManager);
+  
+  // PriorityBoard를 만드는 함수
+  void InitPriorityBoard();
+
+  void SetPriorityBoard(vector<vector<int>> NewBoard){PriorityBoard=NewBoard;}
+  int GetAIColor() {return AIColor;}
+
+  // 현재 턴의 색이 AI의 턴의 색인지 확인
+  // True라면 Algorithm 호출
+  // False라면 InsertOneBlock 호출
+  bool IsAITurn(){ return GetTurnColor()==AIColor;}
+  
+  // Accessible 한 Block들 중 가장 Priority 가 높은 블록을 골라냄.
+  // 그 블록의 X,Y를 SelectedX, SelectedY로 갱신해놓음
+  void Algorithm();
+
+  // AI가 어디에 뒀는지 말해주는 함수
+  void DisplayAISelected(int X, int Y);
 };
 } // namespace Othello
 
