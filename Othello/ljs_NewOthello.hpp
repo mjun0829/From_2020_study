@@ -66,7 +66,7 @@ private:
   int TurnColor;
 
 public:
-  BoardManager(BoardManager& NewBoardManager);
+  BoardManager(BoardManager &NewBoardManager);
   BoardManager(int NewSize);
   // 게임 시작 전 판을 그리는 함수
   void InitBoard(int NewSize);
@@ -228,28 +228,31 @@ public:
 // 현재 선택된 칸의 x,y 좌표인 SelectedX, SelectedY를 내부 알고리즘을 통하여
 // 선택한 뒤 턴을 넘김.
 // 그러나 AccessibleBlocks==0 이라면 User와 동일하게 턴을 바로 넘김.
-// 칸 마다 우선 순위를 둬서 현재 AccessibleBlocks 들 중 가장 우선 순위가 높은 블록을
-// 선택하는 방식으로 진행한다.
-// 우선 순위가 제일 높은 블록이 2개 이상이라면 가장 돌을 많이 뒤집는 블록을 선택한다.
-// 이 개수 또한 동일하다면 그 중 랜덤으로 선택.
-class AIBoardManager : public BoardManager{
+// 칸 마다 우선 순위를 둬서 현재 AccessibleBlocks 들 중 가장 우선 순위가 높은
+// 블록을 선택하는 방식으로 진행한다. 우선 순위가 제일 높은 블록이 2개
+// 이상이라면 가장 돌을 많이 뒤집는 블록을 선택한다. 이 개수 또한 동일하다면 그
+// 중 랜덤으로 선택.
+class AIBoardManager : public BoardManager {
 private:
   int AIColor;
   vector<vector<int>> PriorityBoard;
+
 public:
-  AIBoardManager(int NewAIColor,BoardManager NewBoardManager);
-  
+  AIBoardManager(int NewAIColor, BoardManager NewBoardManager);
+
   // PriorityBoard를 만드는 함수
   void InitPriorityBoard();
 
-  void SetPriorityBoard(vector<vector<int>> NewBoard){PriorityBoard=NewBoard;}
-  int GetAIColor() {return AIColor;}
+  void SetPriorityBoard(vector<vector<int>> NewBoard) {
+    PriorityBoard = NewBoard;
+  }
+  int GetAIColor() { return AIColor; }
 
   // 현재 턴의 색이 AI의 턴의 색인지 확인
   // True라면 Algorithm 호출
   // False라면 InsertOneBlock 호출
-  bool IsAITurn(){ return GetTurnColor()==AIColor;}
-  
+  bool IsAITurn() { return GetTurnColor() == AIColor; }
+
   // Accessible 한 Block들 중 가장 Priority 가 높은 블록을 골라냄.
   // 그 블록의 X,Y를 SelectedX, SelectedY로 갱신해놓음
   void Algorithm();

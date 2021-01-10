@@ -23,14 +23,14 @@ Block::Block(int NewStatus, int NewX, int NewY) {
   y = NewY;
 }
 
-BoardManager::BoardManager(BoardManager& NewBoardManager){
-  Board=NewBoardManager.Board;
-  Blocks=NewBoardManager.Blocks;
-  SelectedX=NewBoardManager.SelectedX;
-  SelectedY=NewBoardManager.SelectedY;
-  AccessibleBlocks=NewBoardManager.AccessibleBlocks;
-  Size=NewBoardManager.Size;
-  TurnColor=NewBoardManager.TurnColor;
+BoardManager::BoardManager(BoardManager &NewBoardManager) {
+  Board = NewBoardManager.Board;
+  Blocks = NewBoardManager.Blocks;
+  SelectedX = NewBoardManager.SelectedX;
+  SelectedY = NewBoardManager.SelectedY;
+  AccessibleBlocks = NewBoardManager.AccessibleBlocks;
+  Size = NewBoardManager.Size;
+  TurnColor = NewBoardManager.TurnColor;
 }
 
 BoardManager::BoardManager(int NewSize) {
@@ -210,7 +210,7 @@ void BoardManager::InsertOneBlock() {
     int UserX, UserY;
     cin >> UserX >> UserY;
     if ((IsValidBlock(UserX, UserY)) && Board[UserY][UserX].GetAccess()) {
-      SetSelected(UserX,UserY);
+      SetSelected(UserX, UserY);
       Blocks++;
       break;
     } else {
@@ -292,44 +292,40 @@ void UserManager::RefreshBlocks(BoardManager BoardManager) {
   BlackUser.SetBlocks(BlackBlocks);
 }
 
-AIBoardManager::AIBoardManager(int NewAIColor,BoardManager NewBoardManager): BoardManager(NewBoardManager){
-  AIColor=NewAIColor;
+AIBoardManager::AIBoardManager(int NewAIColor, BoardManager NewBoardManager)
+    : BoardManager(NewBoardManager) {
+  AIColor = NewAIColor;
   InitPriorityBoard();
 }
 
-void AIBoardManager::InitPriorityBoard(){
+void AIBoardManager::InitPriorityBoard() {
   vector<vector<int>> Result;
-  Result={
-  {7,1,6,2,2,6,1,7},
-  {1,1,3,3,3,3,1,1},
-  {6,3,5,4,4,5,3,6},
-  {2,3,4,0,0,4,3,2},
-  {2,3,4,0,0,4,3,2},
-  {6,3,5,4,4,5,3,6},
-  {1,1,3,3,3,3,1,1},
-  {7,1,6,2,2,6,1,7}
-  };
-  PriorityBoard=Result;
+  Result = {{7, 1, 6, 2, 2, 6, 1, 7}, {1, 1, 3, 3, 3, 3, 1, 1},
+            {6, 3, 5, 4, 4, 5, 3, 6}, {2, 3, 4, 0, 0, 4, 3, 2},
+            {2, 3, 4, 0, 0, 4, 3, 2}, {6, 3, 5, 4, 4, 5, 3, 6},
+            {1, 1, 3, 3, 3, 3, 1, 1}, {7, 1, 6, 2, 2, 6, 1, 7}};
+  PriorityBoard = Result;
 }
 
-void AIBoardManager::Algorithm(){
-  int MaxPriorityX=3;
-  int MaxPriorityY=3;
-  for(int i=0;i<GetSize();i++){
-    for(int j=0;j<GetSize();j++){
-      if(GetBoard()[i][j].GetAccess()){
-        if(PriorityBoard[i][j]>PriorityBoard[MaxPriorityX][MaxPriorityY]){
-          MaxPriorityX=j;
-          MaxPriorityY=i;
+void AIBoardManager::Algorithm() {
+  int MaxPriorityX = 3;
+  int MaxPriorityY = 3;
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (GetBoard()[i][j].GetAccess()) {
+        if (PriorityBoard[i][j] > PriorityBoard[MaxPriorityX][MaxPriorityY]) {
+          MaxPriorityX = j;
+          MaxPriorityY = i;
         }
       }
     }
   }
-  SetSelected(MaxPriorityX,MaxPriorityY);
-  DisplayAISelected(MaxPriorityX,MaxPriorityY);
+  SetSelected(MaxPriorityX, MaxPriorityY);
+  DisplayAISelected(MaxPriorityX, MaxPriorityY);
 }
 
-void AIBoardManager::DisplayAISelected(int X, int Y){
+void AIBoardManager::DisplayAISelected(int X, int Y) {
   cout << endl;
-  cout << "AI 가 " << X << ", " << Y << " 에 두고 턴을 넘깁니다."<< endl << endl;
+  cout << "AI 가 " << X << ", " << Y << " 에 두고 턴을 넘깁니다." << endl
+       << endl;
 }

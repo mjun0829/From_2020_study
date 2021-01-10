@@ -4,7 +4,7 @@ using namespace Othello;
 
 int main() {
   BoardManager BoardManager(8);
-  AIBoardManager AIBoardManager(BLACK,BoardManager);
+  AIBoardManager AIBoardManager(BLACK, BoardManager);
 
   UserManager UserManager;
   AIBoardManager.WhichIsAccessible(AIBoardManager.GetTurnColor());
@@ -19,12 +19,12 @@ int main() {
     }
 
     UserManager.DisplayTurn(AIBoardManager.GetTurnColor());
-    
+
     if (AIBoardManager.GetAccessibleBlocks() > 0) {
-      if(AIBoardManager.IsAITurn()){
+      if (AIBoardManager.IsAITurn()) {
         AIBoardManager.Algorithm();
       } else {
-      AIBoardManager.InsertOneBlock();
+        AIBoardManager.InsertOneBlock();
       }
       AIBoardManager.ReverseBlocks(AIBoardManager.GetTurnColor());
     } else {
