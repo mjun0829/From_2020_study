@@ -5,25 +5,40 @@
 int start_x = 4, start_y = 6;
 void window();				// 기본 윈도우 표시 
 void initialize_color();
+void game(int **, int, int);
+int keypad_manager(int**, int, int, int, int*, int*, int);
 void search(int **mat, int row, int col, int turn); 			// 현재플레이어가 둘 수 있는 위치 검색
-void search_loop(int **mat, int y, int x, int, int, int, int);		// search에서 출력하는 위치 검색함수 
+void search_loop(int **mat, int y, int x, int, int, int);		// search에서 출력하는 위치 검색함수 
 void update_color(int **mat, int y, int x, int turn);			//color_loop 8 times and update
 void color_loop(int **mat, int y, int x, int, int, int turn);		// 플레이어 위치 선정이후 돌색깔 변환 함수 
 void information();
 void make_origin_othello(int **mat, int row, int col);
 void update_turn(int turn);
-void update_othello(int **mat, int row, int col, int turn);
+void update_othello(int **mat, int row, int col);
 void update_cursor(int **mat, int y, int x);
 int change_turn(int **mat, int row, int col, int turn);
 int mat_range_check(int y, int x, int range);
-int mat_color_check(int **mat, int y, int x, int y_t, int x_t, int y_t2, int x_t2, int turn, int turn_opposite);
+int mat_color_check(int **mat, int y, int x, int y_t, int x_t, int y_t2, int x_t2, int turn);
+int opposite_turn(int);
+int direction_check(int, int, int, int, int);
+int forward_search(int**, int*, int*, int, int, int);
+int backward_coloring(int**, int*, int*, int, int, int, int, int);
+void ai_test(int**, int, int);
+void ai_search(int a[8][8], int**, int, int, int, int);
+int ai_max_search(int a[8][8]);
 
 enum value
 {
+	Empty = 0,
 	Player_1 = 1,
 	Player_2 = 2,
-	Available_P1 = 10,
-	Available_P2 = 20
+	Available = 10
+};
+
+enum direction
+{
+	Forward = 20,
+	Backward = 30
 };
 
 void window(){
@@ -39,8 +54,15 @@ void game(int **mat, int row, int col){
 	int turn = Player_1;
 	while(1){
 		update_turn(turn);
-		search(mat, row, col, turn); 
-		update_othello(mat, row, col, turn);
+		search(mat, row, col, turn);
+		update_othello(mat, row, col);
+		if(turn == Player_2){
+			refresh();
+			sleep(2);
+			ai_test(mat, row, col);
+			turn = change_turn(mat, row, col, turn);
+			continue;
+		}
 		attron(COLOR_PAIR(3)); // 커서 색깔 
         	mvprintw(y, x, "O");
 	        refresh();
@@ -49,34 +71,39 @@ void game(int **mat, int row, int col){
 			break;
 		}
 		update_cursor(mat, y, x);
-		switch(input){ // 키보드 입력시 커서  위치변동 
-		case KEY_UP:
-			if((y - 1) < start_y){continue;}
-			y = y - 1;
-			continue;
-		case KEY_DOWN:
-			if((y + 1) > (start_y+(row-1))){continue;}
-			y = y + 1;
-			continue;
-		case KEY_RIGHT:
-			if((x + 2) > (start_x + (col-1) * 2)){continue;}
-			x = x + 2;
-			continue;
-		case KEY_LEFT:
-			if((x - 2) < start_x){continue;}
-			x = x - 2;
-			continue;
-		case ' ':// 플레이어가 선택 시 색깔바꿔주기 및 커서위치 초기화, 플레이어 전환 
-			if(mat[y-start_y][(x-start_x)/2] >= Available_P1){
-				update_color(mat, y, x, turn);
-				turn = change_turn(mat, row, col, turn);
-				y = start_y;
-				x = start_x;
-				continue;
-			}
-			continue;
-		}	
+		turn = keypad_manager(mat, row, col, input, &y, &x, turn);
 	}	
+}
+
+int keypad_manager(int **mat, int row, int col, int input, int *y, int *x, int turn){
+	int y_origin = *y, x_origin = *x;
+	switch(input){ // 키보드 입력시 커서  위치변동 
+                case KEY_UP:
+                        if((*y - 1) < start_y){break;}
+                        *y = *y - 1;
+			break;
+                case KEY_DOWN:
+                        if((*y + 1) > (start_y + (row-1))){break;}
+                        *y = *y + 1;
+			break;
+                case KEY_RIGHT:
+                        if((*x + 2) > (start_x + (col-1) * 2)){break;}
+                        *x = *x + 2;
+			break;
+                case KEY_LEFT:
+                        if((*x - 2) < start_x){break;}
+                        *x = *x - 2;
+			break;
+                case ' ':// 플레이어가 선택 시 색깔바꿔주기 및 커서위치 초기화, 플레이어 전환 
+                        if(mat[*y-start_y][(*x-start_x)/2] == Available){
+                                update_color(mat, y_origin, x_origin, turn);
+                                turn = change_turn(mat, row, col, turn);
+                                *y = start_y;
+                                *x = start_x;
+                        }
+			break;
+	}
+	return turn;
 }
 
 void initialize_color(){
@@ -89,46 +116,31 @@ void initialize_color(){
         init_pair(5, COLOR_GREEN, COLOR_BLACK); // 유효칸 색
 }
 
-void search(int **mat, int row, int col, int t){
-	int y_t = 0;
-	int x_t = 0;
-	int t_t = 0;
+void search(int **mat, int row, int col, int turn){
 	int dir[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
-	if(t == Player_1){t_t = Player_2;}
-	if(t == Player_2){t_t = Player_1;}
 	for(int y = 0; y < row; y++){
 		for(int x = 0; x < col; x++){
 			for(int z = 0; z < 8; z++){
-			search_loop(mat, y, x, dir[z][0], dir[z][1], t, t_t);
+			search_loop(mat, y, x, dir[z][0], dir[z][1], turn);
     			}			
 		}               
 	}
 }
+
 // ydir, xdir 은 8방향 중에 나아갈 방향 
-void search_loop(int **mat, int y, int x, int y_dir, int x_dir, int p, int p_t){
+void search_loop(int **mat, int y, int x, int y_dir, int x_dir, int turn){
 	int y_t = y;
 	int x_t = x;
 	while(1){// 배열에 들어간 값 범위체크, 다음 칸 빈칸 또는 이미 유효칸이면 패스, 같은 색깔 칸이면 패스 
                 if(!mat_range_check(y_t + y_dir, x_t + x_dir, 8)){break;}
-                if(mat[y_t + y_dir][x_t + x_dir] == 0 || mat[y_t + y_dir][x_t + x_dir] >= Available_P1){break;}
-                if(mat_color_check(mat, y, x, y_t, x_t, y_t + y_dir, x_t + x_dir, p, p_t)){
-			if(x == x_t && y != y_t){
-                        	if(p == Player_1){mat[y][x] = Available_P1; }
-				if(p == Player_2){mat[y][x] = Available_P2; }
+                if(mat[y_t + y_dir][x_t + x_dir] == Empty || mat[y_t + y_dir][x_t + x_dir] == Available){break;}
+                if(mat_color_check(mat, y, x, y_t, x_t, y_t + y_dir, x_t + x_dir, turn)){
+			if(!(x == x_t && y == y_t)){
+                        	mat[y][x] = Available;
                         	break;
                 	}
-                        if(y == y_t && x != x_t){
-                                if(p == Player_1){mat[y][x] = Available_P1; }
-                                if(p == Player_2){mat[y][x] = Available_P2; }
-                                break;
-                        }
-                        if(y_t != y && x_t != x){
-                                if(p == Player_1){mat[y][x] = Available_P1; }
-                                if(p == Player_2){mat[y][x] = Available_P2; }
-                                break;
-                        }
 		}
-               	if(mat[y_t + y_dir][x_t + x_dir] == p ){break;}
+               	if(mat[y_t + y_dir][x_t + x_dir] == turn ){break;}
                	y_t = y_t + y_dir;
 		x_t = x_t + x_dir;
 	}
@@ -145,30 +157,20 @@ void update_color(int **mat, int y, int x, int turn){
  	refresh();
 }
 
-void color_loop(int **mat, int y, int x, int y_dir, int x_dir, int t){
-	int y_t = y;
-	int x_t = x;
-	int dir_check = 0;
-	while(1){ 
+
+void color_loop(int **mat, int y, int x, int y_dir, int x_dir, int turn){
+	int y_now = y, x_now = x;
+	int dir_check = Forward;
 	if(mat_range_check(y + y_dir, x + x_dir, 8) && (mat[y][x] != mat[y + y_dir][x + x_dir])){
-		y_t = y;
-		x_t = x;
-		while(1){
-			if(dir_check == 0){
-				y_t = y_t + y_dir;
-				x_t = x_t + x_dir;}
-			if(dir_check == 1){
-				y_t = y_t - y_dir;
-                        	x_t = x_t - x_dir;}
-			if(!mat_range_check(y_t, x_t, 8)){break;  }
-			if(dir_check == 0 && mat[y_t][x_t] == t){dir_check = 1; }
-			if(dir_check == 1 && y_t == y && x_t == x){break; }
-			if(dir_check == 1 && mat[y_t][x_t] == 3-t){mat[y_t][x_t] = t; }
+		if(dir_check == Forward){
+		       	if(forward_search(mat, &y_now, &x_now, y_dir, x_dir, turn)){
+				dir_check = Backward;
+			}
 		}
-	}
-	y = y + y_dir;//만약 넘어서도 다른색 돌이있으면 찾아서 진행 
-	x = x + x_dir;
-	if(!mat_range_check(y, x, 8)){break;	}
+		if(dir_check == Backward){ 
+			backward_coloring(mat, &y_now, &x_now, y_dir, x_dir, y, x, turn);
+		}
+		
 	}
 }
 
@@ -201,13 +203,12 @@ void update_turn(int turn){
         mvprintw(5, 8, "%dP Turn", turn);
 }
 
-void update_othello(int **mat, int row, int col, int turn){
+void update_othello(int **mat, int row, int col){
 	for(int a = 0; a < row; a++){ // 오셀로 판 업데이트 
                 for(int b = 0; b < col; b++){
-                        if(mat[a][b] == 0){attron(COLOR_PAIR(4)); }// 빈칸 
+                        if(mat[a][b] == Empty){attron(COLOR_PAIR(4)); }// 빈칸 
                         if(mat[a][b] == Player_1 || mat[a][b] == Player_2){attron(COLOR_PAIR(mat[a][b])); }// 플레이어고른칸 
-                        if(mat[a][b] == turn * 10){attron(COLOR_PAIR(5)); } // 플레이어가 고를수 있는 칸
-                        if(mat[a][b] == (3-turn) * 10){attron(COLOR_PAIR(4)); } // 반대 플레이어가 고를수 있는칸
+                        if(mat[a][b] == Available){attron(COLOR_PAIR(5)); } // 플레이어가 고를수 있는 칸
                 	mvprintw(a + start_y, 2 * b + start_x, "O");
 		}
 	}
@@ -215,44 +216,109 @@ void update_othello(int **mat, int row, int col, int turn){
 }
 
 void update_cursor(int **mat, int y, int x){
-        if(mat[y-start_y][(x-start_x)/2]==0){
+        if(mat[y-start_y][(x-start_x)/2] == Empty){
                 attron(COLOR_PAIR(4));
         }
-        if(mat[y-start_y][(x-start_x)/2]!=0){
+        if(mat[y-start_y][(x-start_x)/2] != Empty){
                 attron(COLOR_PAIR(mat[y-start_y][(x-start_x)/2]));
         }
         mvprintw(y, x, "O");//커서이동후 원래 색깔로 돌려줌
 }
 
 int change_turn(int **mat, int row, int col, int turn){
-	if(turn == Player_1){
-		for(int q = 0; q < row; q++){// 현재 플레이어 유효칸 초기화(중복표시 방지)
-			for(int w = 0; w < col; w++){
-				if(mat[q][w] == Available_P1 || mat[q][w] == Available_P2){mat[q][w] = 0; }
-			}
+	for(int q = 0; q < row; q++){// 현재 플레이어 유효칸 초기화(중복표시 방지)
+		for(int w = 0; w < col; w++){
+			if(mat[q][w] == Available){mat[q][w] = Empty; }
 		}
-		turn = Player_2;
-		return turn;
 	}
-	if(turn == Player_2){
-		for(int q = 0; q < row; q++){
-			for(int w = 0; w < col; w++){
-				if(mat[q][w] == Available_P1 || mat[q][w] == Available_P2){mat[q][w] = 0; }
-			}
-		}
-		turn = Player_1;
-		return turn;
-	}
+	return opposite_turn(turn);
+	
 }
 
 int mat_range_check(int y, int x, int range){
 	return (y >= 0 && y < range && x >= 0 && x < range);
 }
 
-int mat_color_check(int **mat, int y, int x, int y_t, int x_t, int y_t2, int x_t2, int turn, int turn_op){
-	return (mat[y][x] == 0 && mat[y_t2][x_t2] == turn && mat[y_t][x_t] == turn_op);
+int mat_color_check(int **mat, int y_origin, int x_origin, int y_now, int x_now, int y_next, int x_next, int turn){
+	return (mat[y_origin][x_origin] == Empty && mat[y_next][x_next] == turn && mat[y_now][x_now] == opposite_turn(turn));
 }
 
+int opposite_turn(int turn){
+	return (3-turn);
+}
+
+int forward_search(int **mat, int *y_now, int *x_now, int y_dir, int x_dir, int turn){
+	while(1){
+		*y_now = *y_now + y_dir;
+		*x_now = *x_now + x_dir;
+		if(!mat_range_check(*y_now, *x_now, 8)){return false;}
+		if(mat[*y_now][*x_now] == turn){return true;}
+		if(mat[*y_now][*x_now] == Empty){return false;}
+	}
+}
+
+int backward_coloring(int **mat, int *y_now, int *x_now, int y_dir, int x_dir, int y, int x, int turn){
+	while(1){
+		*y_now = *y_now - y_dir;
+                *x_now = *x_now - x_dir;
+		if(y == *y_now && x == *x_now){break;}
+		if(mat[*y_now][*x_now] == opposite_turn(turn)){mat[*y_now][*x_now] = turn;	}
+	}
+}
+
+void ai_test(int **mat, int row, int col){
+	int index = 0, index_y = 0, index_x = 0;
+	int greedy_array[8][8] = {0,};
+	int dir[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+	for(int y = 0; y < row; y++){
+		for(int x = 0; x < col; x++){
+			if(mat[y][x] == Available){
+				for(int z = 0; z < 8; z++){
+					ai_search(greedy_array, mat, y, x, dir[z][0], dir[z][1]);
+				}
+			}
+			mvprintw(y + start_y, 2 * x + 24, "%d", greedy_array[y][x]);
+		}
+	}
+	index = ai_max_search(greedy_array);
+	index_y = (index / 8) + start_y;
+	index_x = (index % 8) * 2 + start_x;
+	mvprintw(0,0,"y : %d x : %d",index/8,index%8);
+	update_color(mat, index_y, index_x, Player_2);
+	
+}
+
+void ai_search(int greedy[8][8], int **mat, int y, int x, int y_dir, int x_dir){
+	int greed = 0;
+	int y_now = y, x_now = x;
+	while(1){
+		if(!mat_range_check(y_now + y_dir, x_now + x_dir, 8) || mat[y_now + y_dir][x_now + x_dir] == Empty){
+			greed = 0;
+			break;
+		}
+		if(mat[y_now + y_dir][x_now + x_dir] == Player_1){greed++;}
+		if(mat[y_now + y_dir][x_now + x_dir] == Player_2){break;}
+		y_now = y_now + y_dir;
+		x_now = x_now + x_dir;
+		
+	}
+	greedy[y][x] = greedy[y][x] + greed;
+}
+
+int ai_max_search(int greedy[8][8]){
+	mvprintw(1,0,"fuck");
+	int max = 0;
+	int max_index = 0;
+	for(int y = 0; y < 8; y++){
+		for(int x = 0; x < 8; x++){
+			if(greedy[y][x] > max){
+				max = greedy[y][x];
+				max_index = (y * 8) + x;
+			}
+		}
+	}
+	return max_index;
+}
 int main(){
 	int **o_matrix;		//2차원 배열 포인터 선언 
 	int row_size = 8;
