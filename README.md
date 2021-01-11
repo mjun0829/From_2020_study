@@ -6,3 +6,6 @@ https://docs.google.com/document/d/11FzWOYEqe82-7iXaQ3vncBJhgWsNgMMEmfJ8e3BI3xc/
 
 **2. 좋은 코드의 조건**
 https://docs.google.com/document/d/1duU63gDMbdTzEyLaGNmGIL3aZIckxoMx7ozHeIZJ7Cs/edit?usp=sharing
+
+**3. 오델로 AI의 전략**
+https://docs.google.com/document/d/1CA7Q84zEM4cho4Ad3hwjt8kaWS_HjwE_stBL9MQNcDY/edit?usp=sharing
