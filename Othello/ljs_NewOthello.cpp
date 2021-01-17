@@ -23,6 +23,16 @@ Block::Block(int NewStatus, int NewX, int NewY) {
   y = NewY;
 }
 
+BoardManager::BoardManager() {
+  InitBoard(1);
+  Size = 1;
+  Blocks = 4;
+  SelectedX = 0;
+  SelectedY = 0;
+  AccessibleBlocks = 0;
+  TurnColor = EMPTY;
+}
+
 BoardManager::BoardManager(BoardManager &NewBoardManager) {
   Board = NewBoardManager.Board;
   Blocks = NewBoardManager.Blocks;
@@ -298,6 +308,17 @@ AIBoardManager::AIBoardManager(int NewAIColor, BoardManager NewBoardManager)
   InitPriorityBoard();
 }
 
+AIBoardManager::AIBoardManager(AIBoardManager &NewAIBoardManager) {
+  AIColor = NewAIBoardManager.GetAIColor();
+  PriorityBoard = NewAIBoardManager.GetPriorityBoard();
+  SetBoard(NewAIBoardManager.GetBoard());
+  SetSelected(-1, -1);
+  SetSize(NewAIBoardManager.GetSize());
+  SetBlocks(NewAIBoardManager.GetBlocks());
+  SetAccessibleBlocks(NewAIBoardManager.GetAccessibleBlocks());
+  SetTurnColor(NewAIBoardManager.GetTurnColor());
+}
+
 void AIBoardManager::InitPriorityBoard() {
   vector<vector<int>> Result;
   Result = {{7, 1, 6, 2, 2, 6, 1, 7}, {1, 1, 3, 3, 3, 3, 1, 1},
@@ -316,12 +337,77 @@ void AIBoardManager::Algorithm() {
         if (PriorityBoard[i][j] > PriorityBoard[MaxPriorityX][MaxPriorityY]) {
           MaxPriorityX = j;
           MaxPriorityY = i;
+        } else if (PriorityBoard[i][j] ==
+                   PriorityBoard[MaxPriorityX][MaxPriorityY]) {
+          if (IsBetterXY(j, i, MaxPriorityY, MaxPriorityX)) {
+            MaxPriorityX = i;
+            MaxPriorityY = j;
+          }
         }
       }
     }
   }
   SetSelected(MaxPriorityX, MaxPriorityY);
   DisplayAISelected(MaxPriorityX, MaxPriorityY);
+}
+
+bool AIBoardManager::IsBetterXY(int LeftX, int LeftY, int RightX, int RightY) {
+  AIBoardManager LeftBM = *this;
+  AIBoardManager RightBM = *this;
+  LeftBM.SetSelected(LeftX, LeftY);
+  RightBM.SetSelected(RightX, RightY);
+  LeftBM.ReverseBlocks(this->GetAIColor());
+  RightBM.ReverseBlocks(this->GetAIColor());
+  LeftBM.ChangeTurn();
+  RightBM.ChangeTurn();
+
+  if (this->GetAIColor() == BLACK) {
+    LeftBM.WhichIsAccessible(WHITE);
+    RightBM.WhichIsAccessible(BLACK);
+  } else {
+    LeftBM.WhichIsAccessible(BLACK);
+    RightBM.WhichIsAccessible(WHITE);
+  }
+
+  if (!LeftBM.FindMinPriority() < RightBM.FindMinPriority()) {
+    return false;
+  } else {
+    if (!LeftBM.FindMaxPriority() < RightBM.FindMaxPriority()) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+}
+
+int AIBoardManager::FindMinPriority() {
+  vector<vector<Block>> TempBoard = GetBoard();
+  int Result = 8;
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (TempBoard[i][j].GetAccess()) {
+        if (Result > PriorityBoard[i][j]) {
+          Result = PriorityBoard[i][j];
+        }
+      }
+    }
+  }
+  return Result;
+}
+
+int AIBoardManager::FindMaxPriority() {
+  vector<vector<Block>> TempBoard = GetBoard();
+  int Result = 0;
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (TempBoard[i][j].GetAccess()) {
+        if (Result < PriorityBoard[i][j]) {
+          Result = PriorityBoard[i][j];
+        }
+      }
+    }
+  }
+  return Result;
 }
 
 void AIBoardManager::DisplayAISelected(int X, int Y) {

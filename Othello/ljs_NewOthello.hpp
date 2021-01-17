@@ -66,6 +66,7 @@ private:
   int TurnColor;
 
 public:
+  BoardManager();
   BoardManager(BoardManager &NewBoardManager);
   BoardManager(int NewSize);
   // 게임 시작 전 판을 그리는 함수
@@ -77,13 +78,14 @@ public:
     SelectedY = NewY;
   }
   void SetAccessibleBlocks(int NewBlocks) { AccessibleBlocks = NewBlocks; }
-
+  void SetTurnColor(int Color) { TurnColor = Color; }
   // Accessors
   vector<vector<Block>> GetBoard() { return Board; }
   void SetBoard(vector<vector<Block>> NewBoard) {
     Board.clear();
     Board = NewBoard;
   }
+  void SetSize(int NewSize) { Size = NewSize; }
   int GetX() { return SelectedX; }
   int GetY() { return SelectedY; }
   int GetBlocks() { return Blocks; }
@@ -239,10 +241,11 @@ private:
 
 public:
   AIBoardManager(int NewAIColor, BoardManager NewBoardManager);
+  AIBoardManager(AIBoardManager &NewAIBoardManager);
 
   // PriorityBoard를 만드는 함수
   void InitPriorityBoard();
-
+  vector<vector<int>> GetPriorityBoard() { return PriorityBoard; }
   void SetPriorityBoard(vector<vector<int>> NewBoard) {
     PriorityBoard = NewBoard;
   }
@@ -259,6 +262,16 @@ public:
 
   // AI가 어디에 뒀는지 말해주는 함수
   void DisplayAISelected(int X, int Y);
+
+  // 어떤 돌이 더 나은 선택인지 알려주는 함수
+  // True를 리턴하면 MaxPriority를 바꾸고, 아니면 바꾸지 않음
+  bool IsBetterXY(int LeftX, int LeftY, int RightX, int RightY);
+
+  // 가장 낮은 priority를 반환
+  int FindMinPriority();
+
+  // 가장 높은 priority를 반환
+  int FindMaxPriority();
 };
 } // namespace Othello
 
