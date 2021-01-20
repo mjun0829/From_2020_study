@@ -352,8 +352,10 @@ void AIBoardManager::Algorithm() {
 }
 
 bool AIBoardManager::IsBetterXY(int LeftX, int LeftY, int RightX, int RightY) {
-  AIBoardManager LeftBM = *this;
-  AIBoardManager RightBM = *this;
+  AIBoardManager LeftBM(this->GetAIColor());
+  AIBoardManager RightBM(this->GetAIColor());
+  LeftBM.SetBoard(this->GetBoard());
+  RightBM.SetBoard(this->GetBoard());
   LeftBM.SetSelected(LeftX, LeftY);
   RightBM.SetSelected(RightX, RightY);
   LeftBM.ReverseBlocks(this->GetAIColor());

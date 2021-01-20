@@ -240,6 +240,10 @@ private:
   vector<vector<int>> PriorityBoard;
 
 public:
+  AIBoardManager(int NewAIColor) {
+    AIColor = NewAIColor;
+    InitPriorityBoard();
+  }
   AIBoardManager(int NewAIColor, BoardManager NewBoardManager);
   AIBoardManager(AIBoardManager &NewAIBoardManager);
 
