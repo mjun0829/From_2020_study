@@ -238,6 +238,7 @@ class AIBoardManager : public BoardManager {
 private:
   int AIColor;
   vector<vector<int>> PriorityBoard;
+  const double INF = -64;
 
 public:
   AIBoardManager(int NewAIColor) {
@@ -260,9 +261,34 @@ public:
   // False라면 InsertOneBlock 호출
   bool IsAITurn() { return GetTurnColor() == AIColor; }
 
-  // Accessible 한 Block들 중 가장 Priority 가 높은 블록을 골라냄.
+  // AI 알고리즘의 전체적인 흐름을 가진 함수
+  // RankBoard에서 가장 높은 Rank를 가진 X,Y가 선택됨
+  // Priority / Greedy 알고리즘으로 value에 중요도를 곱해서 저장해둠.
+  // 이때 중요도는 코사인, 사인 제곱 함수에 비례하도록 지정
   // 그 블록의 X,Y를 SelectedX, SelectedY로 갱신해놓음
   void Algorithm();
+
+  // RankBoard 선언
+  // RankBoard 에서 Accessible하지 않은 블록은 INF(-64)를 저장.
+  // 나머지는 0으로 초기화
+  vector<vector<double>> InitRankBoard();
+
+  // 우선순위 알고리즘
+  // 해당 블록의 우선순위가 높으면 채택
+  void PriorityAlgorithm(vector<vector<double>> &RankBoard);
+
+  // 해당 블록이 가장 많이 뒤집는 돌이면 채택
+  void GreedyAlgorithm(vector<vector<double>> &RankBoard);
+
+  // RandBoard에서 가장 큰 value인 지점을 X,Y에 저장
+  void FindMaxXY(int &X, int &Y, vector<vector<double>> RankBoard);
+
+  // Vec의 모든 원소의 평균을 반환
+  double GetAverage(vector<int> Vec);
+
+  // PriorityAlgorithm에 쓰이는 코사인 제곱함수
+  //(X-m)/m 에 코사인제곱 함수를 곱해준다.
+  double CosineSquare(int Turn);
 
   // AI가 어디에 뒀는지 말해주는 함수
   void DisplayAISelected(int X, int Y);

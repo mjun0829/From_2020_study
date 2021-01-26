@@ -1,4 +1,5 @@
 #include "ljs_NewOthello.hpp"
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -329,27 +330,70 @@ void AIBoardManager::InitPriorityBoard() {
 }
 
 void AIBoardManager::Algorithm() {
-  int MaxPriorityX = 3;
-  int MaxPriorityY = 3;
-  for (int i = 0; i < GetSize(); i++) {
-    for (int j = 0; j < GetSize(); j++) {
-      if (GetBoard()[i][j].GetAccess()) {
-        if (PriorityBoard[i][j] > PriorityBoard[MaxPriorityX][MaxPriorityY]) {
-          MaxPriorityX = j;
-          MaxPriorityY = i;
-        } else if (PriorityBoard[i][j] ==
-                   PriorityBoard[MaxPriorityX][MaxPriorityY]) {
-          if (IsBetterXY(j, i, MaxPriorityY, MaxPriorityX)) {
-            MaxPriorityX = i;
-            MaxPriorityY = j;
-          }
-        }
-      }
-    }
-  }
+  vector<vector<double>> RankBoard;
+  RankBoard = InitRankBoard();
+  int MaxPriorityX = 0;
+  int MaxPriorityY = 0;
+  FindMaxXY(MaxPriorityX, MaxPriorityY, RankBoard);
   SetSelected(MaxPriorityX, MaxPriorityY);
   DisplayAISelected(MaxPriorityX, MaxPriorityY);
 }
+
+vector<vector<double>> AIBoardManager::InitRankBoard() {
+  vector<vector<double>> Result;
+  vector<vector<Block>> SourceBoard = GetBoard();
+  for (int i = 0; i < GetSize(); i++) {
+    vector<double> TempBoard;
+    for (int j = 0; j < GetSize(); j++) {
+      if (!SourceBoard[i][j].GetAccess()) {
+        TempBoard.push_back(INF);
+      } else {
+        TempBoard.push_back(0);
+      }
+    }
+    Result.push_back(TempBoard);
+  }
+  return Result;
+}
+
+void AIBoardManager::PriorityAlgorithm(vector<vector<double>> &RankBoard) {
+  vector<int> TempVector;
+  for (int i; i < GetSize(); i++) {
+    for (int j; j < GetSize(); j++) {
+      if (GetBoard()[i][j].GetAccess()) {
+        TempVector.push_back(GetPriorityBoard()[i][j]);
+      }
+    }
+  }
+  double Average = GetAverage(TempVector);
+
+  for (int i; i < GetSize(); i++) {
+    for (int j; j < GetSize(); j++) {
+      if (GetBoard()[i][j].GetAccess()) {
+        double Value = GetPriorityBoard()[i][j];
+        Value -= Average;
+        Value /= Average;
+        Value *= CosineSquare(GetBlocks() - 4);
+        RankBoard[i][j] += Value;
+      }
+    }
+  }
+}
+
+double AIBoardManager::GetAverage(vector<int> Vec) {
+  double Result = 0;
+  for (int Value : Vec) {
+    Result += Value;
+  }
+  return Result / Vec.size();
+}
+
+double AIBoardManager::CosineSquare(int Turn) {
+  double Value = cos(M_PI * Turn / 60);
+  return Value * Value;
+}
+
+void AIBoardManager::GreedyAlgorithm(vector<vector<double>> &RankBoard) {}
 
 bool AIBoardManager::IsBetterXY(int LeftX, int LeftY, int RightX, int RightY) {
   AIBoardManager LeftBM(this->GetAIColor());
