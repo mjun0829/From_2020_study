@@ -334,9 +334,18 @@ void AIBoardManager::Algorithm() {
   RankBoard = InitRankBoard();
   int MaxPriorityX = 0;
   int MaxPriorityY = 0;
+  PriorityAlgorithm(RankBoard);
+  GreedyAlgorithm(RankBoard);
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      cout << RankBoard[i][j] << "   ";
+    }
+    cout << endl;
+  }
   FindMaxXY(MaxPriorityX, MaxPriorityY, RankBoard);
   SetSelected(MaxPriorityX, MaxPriorityY);
   DisplayAISelected(MaxPriorityX, MaxPriorityY);
+  SetBlocks(GetBlocks()+1);
 }
 
 vector<vector<double>> AIBoardManager::InitRankBoard() {
@@ -358,25 +367,28 @@ vector<vector<double>> AIBoardManager::InitRankBoard() {
 
 void AIBoardManager::PriorityAlgorithm(vector<vector<double>> &RankBoard) {
   vector<int> TempVector;
-  for (int i; i < GetSize(); i++) {
-    for (int j; j < GetSize(); j++) {
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
       if (GetBoard()[i][j].GetAccess()) {
         TempVector.push_back(GetPriorityBoard()[i][j]);
       }
     }
   }
   double Average = GetAverage(TempVector);
+  int Count=0;
 
-  for (int i; i < GetSize(); i++) {
-    for (int j; j < GetSize(); j++) {
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
       if (GetBoard()[i][j].GetAccess()) {
-        double Value = GetPriorityBoard()[i][j];
-        Value -= Average;
-        Value /= Average;
-        Value *= CosineSquare(GetBlocks() - 4);
-        RankBoard[i][j] += Value;
+        RankBoard[i][j] += GetVariance(TempVector[Count], Average,
+                                        CosineSquare(GetBlocks() - 4));
+        Count++;
       }
     }
+  }
+  cout << "Priority TempVector" << endl;
+  for (int i = 0; i < TempVector.size(); i++) {
+    cout << TempVector[i] << endl;
   }
 }
 
@@ -393,7 +405,80 @@ double AIBoardManager::CosineSquare(int Turn) {
   return Value * Value;
 }
 
-void AIBoardManager::GreedyAlgorithm(vector<vector<double>> &RankBoard) {}
+void AIBoardManager::GreedyAlgorithm(vector<vector<double>> &RankBoard) {
+  vector<vector<Block>> TempBoard = GetBoard();
+  vector<int> TempVector;
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (TempBoard[i][j].GetAccess()) {
+        int Value = CountColorBlocks(j, i, GetAIColor());
+        TempVector.push_back(Value);
+      }
+    }
+  }
+  double Average = GetAverage(TempVector);
+  int Count = 0;
+
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (GetBoard()[i][j].GetAccess()) {
+        RankBoard[i][j] += GetVariance(TempVector[Count], Average,
+                                       SineSquare(GetBlocks() - 4));
+        Count++;
+      }
+    }
+  }
+}
+
+int AIBoardManager::CountColorBlocks(int NowX, int NowY, int Color) {
+  int WayX[8] = {1, 0, -1, 1, -1, 1, 0, -1};
+  int WayY[8] = {1, 1, 1, 0, 0, -1, -1, -1};
+  int Result = 0;
+  for (int i = 0; i < 8; i++) {
+    if (CheckColor(NowX, NowY, WayX[i], WayY[i], Color)) {
+      Result += CountColorBlocks(NowX, NowY, WayX[i], WayY[i], Color);
+    }
+  }
+  return Result;
+}
+
+int AIBoardManager::CountColorBlocks(int NowX, int NowY, int JumpX, int JumpY,
+                                     int Color) {
+  int CursorX = NowX + JumpX;
+  int CursorY = NowY + JumpY;
+  int Result = 0;
+  while (true) {
+    if (GetBoard()[CursorY][CursorX].GetStatus() != Color) {
+      Result++;
+      CursorX += JumpX;
+      CursorY += JumpY;
+    } else {
+      break;
+    }
+  }
+  return Result;
+}
+double AIBoardManager::SineSquare(int Turn) {
+  double Value = sin(M_PI * Turn / 60);
+  return Value * Value;
+}
+
+void AIBoardManager::FindMaxXY(int &X, int &Y,
+                               vector<vector<double>> RankBoard) {
+  int MaxX = 0;
+  int MaxY = 0;
+  for (int i = 0; i < GetSize(); i++) {
+    for (int j = 0; j < GetSize(); j++) {
+      if (RankBoard[MaxY][MaxX] < RankBoard[i][j]) {
+        MaxX = j;
+        MaxY = i;
+        cout << "Changed" << endl;
+      }
+    }
+  }
+  X = MaxX;
+  Y = MaxY;
+}
 
 bool AIBoardManager::IsBetterXY(int LeftX, int LeftY, int RightX, int RightY) {
   AIBoardManager LeftBM(this->GetAIColor());
@@ -460,4 +545,12 @@ void AIBoardManager::DisplayAISelected(int X, int Y) {
   cout << endl;
   cout << "AI 가 " << X << ", " << Y << " 에 두고 턴을 넘깁니다." << endl
        << endl;
+}
+
+double AIBoardManager::GetVariance(int Value, double Average, double Weight){
+  double Result=Value;
+  Result -= Average;
+  Result /= Average;
+  Result *= Weight;
+  return Result;
 }

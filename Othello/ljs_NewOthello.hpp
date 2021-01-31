@@ -176,6 +176,10 @@ public:
 
   //유저의 턴을 바꾸는 함수
   void ChangeTurn() { Turn = !Turn; }
+
+  // 유저 블록의 개수가 0이면 true 반환
+  // 0이라면 패배
+  bool IsBlocks0(){ return Blocks==0;}
 };
 
 //유저 간 상호작용을 할 수 있게 하는 함수를 가지고 있는 클래스.
@@ -223,6 +227,15 @@ public:
 
   // 유저들의 Blocks를 갱신하는 함수
   void RefreshBlocks(BoardManager BoardManager);
+
+  // Color 유저의 IsBlocks0가 true인지 확인
+  bool CheckIsBlocks0(int Color) {
+    if(Color==BLACK){
+      return BlackUser.IsBlocks0();
+    } else {
+      return WhiteUser.IsBlocks0();
+    }
+  }
 };
 
 // User의 색과 AIUserManager의 AIColor 와 일치하는 유저가 AI
@@ -286,9 +299,21 @@ public:
   // Vec의 모든 원소의 평균을 반환
   double GetAverage(vector<int> Vec);
 
-  // PriorityAlgorithm에 쓰이는 코사인 제곱함수
+  // PriorityAlgorithm에 쓰이는 코사인 제곱 함수
   //(X-m)/m 에 코사인제곱 함수를 곱해준다.
   double CosineSquare(int Turn);
+
+  // Color 블록이 NowX,NowY 자리에 놓으면 얼마나 많은 돌이 바뀌는지 반환하는
+  // 함수
+  int CountColorBlocks(int NowX, int NowY, int Color);
+
+  // Color 블록이 NowX, NowY 자리에서 JumpX, JumpY 방향으로 얼마나 많은 돌이 바
+  // 뀌는지 반환하는 함수
+  int CountColorBlocks(int NowX, int NowY, int JumpX, int JumpY, int Color);
+
+  // GreedyAlgorithm에 쓰이는 사인 제곱 함수
+  // (X-m)/m에 사인 제곱 함수를 곱해준다.
+  double SineSquare(int Turn);
 
   // AI가 어디에 뒀는지 말해주는 함수
   void DisplayAISelected(int X, int Y);
@@ -302,6 +327,12 @@ public:
 
   // 가장 높은 priority를 반환
   int FindMaxPriority();
+
+  // 가중치를 곱한 분산치를 반환
+  // Weight * (Value - Average) / Value
+  // PriorityAlgorithm에서는 Weight가 CosineSquare
+  // GreedyAlgorithm에서는 Weight가 SineSquare
+  double GetVariance(int Value,double Average,double Weight);
 };
 } // namespace Othello
 

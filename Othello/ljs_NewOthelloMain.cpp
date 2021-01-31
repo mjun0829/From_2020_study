@@ -18,6 +18,16 @@ int main() {
       break;
     }
 
+    if (UserManager.CheckIsBlocks0(BoardManager.GetTurnColor())){
+      if(BoardManager.GetTurnColor()==WHITE){
+        UserManager.EndGame(AIBoardManager,BLACK);
+        break;
+      } else {
+        UserManager.EndGame(AIBoardManager,WHITE);
+        break;
+      }
+    }
+
     UserManager.DisplayTurn(AIBoardManager.GetTurnColor());
 
     if (AIBoardManager.GetAccessibleBlocks() > 0) {
