@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
+#define PI 3.1415926535
 int start_x = 4, start_y = 6;
-float avail_count = 0, count = 0;
+int turn_count = 0;
 void window();				// 기본 윈도우 표시 
 void initialize_color();
 void game(int **, int, int);
@@ -26,18 +28,21 @@ int direction_check(int, int, int, int, int);
 int forward_search(int**, int*, int*, int, int, int);
 int backward_coloring(int**, int*, int*, int, int, int, int, int);
 void ai_test(int**, int, int, int);
-void init_greedy(int A[8][8]);
-void ai_search(int a[8][8], int**, int, int, int, int, int);
-int ai_index_search(int a[8][8]);
-int ai_max_search(int a[8][8]);
-int calculate_standard_dev(int A[8][8]);
-void plus_standard_dev(int A[8][8]);
-void ai_next_check(int **mat, int greedy[8][8], int row, int col, int turn);
-void ai_next_search(int**, int A[8][8], int, int, int, int, int);
+void init_greedy(double A[8][8]);
+void ai_search(double a[8][8], int**, int, int, int, int, int);
+int ai_index_search(double a[8][8]);
+double ai_max_search(double a[8][8]);
+double calculate_average(double A[8][8]);
+void change_value(double A[8][8]);
+void ai_next_check(int **mat, double greedy[8][8], int row, int col, int turn);
+void ai_next_search(int**, double A[8][8], int, int, int, int, int);
 void matrix_copy(int**, int**, int, int);
-void print_greedy(int A[8][8], int row, int col);
+void print_greedy(double A[8][8], int row, int col);
+void make_priority(int**, double A[8][8]);
+void plus_mat(double A[8][8], double B[8][8]);
 int **make_2d_array_pointer(int**, int, int);
 void free_2d_array_pointer(int**, int);
+
 enum value
 {
 	Empty = 0,
@@ -76,6 +81,7 @@ void game(int **mat, int row, int col){
 			sleep(2);
 			ai_test(mat, row, col, turn);
 			turn = change_turn(mat, row, col, turn);
+			turn_count++;
 			continue;
 		}
 		attron(COLOR_PAIR(3)); // 커서 색깔 
@@ -87,6 +93,7 @@ void game(int **mat, int row, int col){
 		}
 		update_cursor(mat, y, x);
 		turn = keypad_manager(mat, row, col, input, &y, &x, turn);
+		turn_count++;
 	}	
 }
 
@@ -283,10 +290,12 @@ int backward_coloring(int **mat, int *y_now, int *x_now, int y_dir, int x_dir, i
 
 void ai_test(int **mat, int row, int col, int turn){
 	int index = 0, index_y = 0, index_x = 0;
-	int greedy_array[8][8];
+	double greedy_array[8][8];
+	double priority_array[8][8];
 	int standard_dev = 0;
 	int dir[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 	init_greedy(greedy_array);
+	make_priority(mat, priority_array);
 	for(int y = 0; y < row; y++){
 		for(int x = 0; x < col; x++){
 			if(mat[y][x] == Available){
@@ -297,8 +306,9 @@ void ai_test(int **mat, int row, int col, int turn){
 			}
 		}
 	}
-	plus_standard_dev(greedy_array);
+	change_value(greedy_array);
 	ai_next_check(mat, greedy_array, row, col, turn);
+	plus_mat(greedy_array, priority_array);
 	print_greedy(greedy_array, row, col);
 	index = ai_index_search(greedy_array);
 	index_y = (index / 8) + start_y;
@@ -307,14 +317,14 @@ void ai_test(int **mat, int row, int col, int turn){
 	update_color(mat, index_y, index_x, Player_2);
 }
 
-void init_greedy(int greedy[8][8]){
+void init_greedy(double greedy[8][8]){
 	for(int y = 0; y < 8; y++){
 		for(int x = 0; x < 8; x++){
 			greedy[y][x] = greedy_empty;
 		}
 	}
 }
-void ai_search(int greedy[8][8], int **mat, int y, int x, int y_dir, int x_dir, int turn){
+void ai_search(double greedy[8][8], int **mat, int y, int x, int y_dir, int x_dir, int turn){
 	int greed = 0;
 	int y_now = y, x_now = x;
 	while(1){
@@ -331,8 +341,8 @@ void ai_search(int greedy[8][8], int **mat, int y, int x, int y_dir, int x_dir, 
 	greedy[y][x] = greedy[y][x] + greed;
 }
 
-int ai_index_search(int greedy[8][8]){
-	int max = greedy_empty;
+int ai_index_search(double greedy[8][8]){
+	double max = greedy_empty;
 	int max_index = 0;
 	for(int y = 0; y < 8; y++){
 		for(int x = 0; x < 8; x++){
@@ -345,8 +355,8 @@ int ai_index_search(int greedy[8][8]){
 	return max_index;
 }
 
-int ai_max_search(int greedy[8][8]){
-	int max = greedy_empty;
+double ai_max_search(double greedy[8][8]){
+	double max = greedy_empty;
 	for(int y = 0; y < 8; y++){
 		for(int x = 0; x < 8; x++){
 			if(greedy[y][x] > max){
@@ -357,8 +367,7 @@ int ai_max_search(int greedy[8][8]){
 	return max;
 }
 
-int calculate_standard_dev(int greedy[8][8]){
-	int standard_dev = 0;
+double calculate_average(double greedy[8][8]){
 	double average = 0;
 	double total = 0;
 	double total_2 = 0;
@@ -367,27 +376,25 @@ int calculate_standard_dev(int greedy[8][8]){
 			if(greedy[y][x] > greedy_empty){
 				total++;
 				average = average + (double)greedy[y][x];
-				total_2 = total_2 + pow((double)greedy[y][x], 2.0);
 			}
 		}
 	}
-	average = pow(average / total, 2.0);
-	standard_dev = sqrt(total_2 - average);
-	return standard_dev;
+	average = average / total;
+	return average;
 }
 
-void plus_standard_dev(int greedy[8][8]){
-	int standard_dev = calculate_standard_dev(greedy);
+void change_value(double greedy[8][8]){
+	double average = calculate_average(greedy);
 	for(int y = 0; y < 8; y++){
 		for(int x = 0; x < 8; x++){
 			if(greedy[y][x] > greedy_empty){
-				greedy[y][x] = greedy[y][x] + standard_dev;
+				greedy[y][x] = (greedy[y][x] - average)/average;
 			}
 		}
 	}
 }
 
-void ai_next_check(int **mat, int greedy[8][8], int row, int col, int turn){
+void ai_next_check(int **mat, double greedy[8][8], int row, int col, int turn){
 	for(int y = 0; y < row; y++){
 		for(int x = 0; x < col; x++){
 			if(greedy[y][x] > 0){
@@ -397,8 +404,8 @@ void ai_next_check(int **mat, int greedy[8][8], int row, int col, int turn){
 	}
 }
 
-void ai_next_search(int **mat, int greedy[8][8], int row, int col, int a, int b, int turn){
-	int temp_greedy[8][8] = {0,};
+void ai_next_search(int **mat, double greedy[8][8], int row, int col, int a, int b, int turn){
+	double temp_greedy[8][8] = {0,};
 	int dir[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 	int **mat_copy;
        	mat_copy = make_2d_array_pointer(mat, row, col);
@@ -414,7 +421,7 @@ void ai_next_search(int **mat, int greedy[8][8], int row, int col, int a, int b,
                         }
                 }
         }
-	plus_standard_dev(temp_greedy);
+	change_value(temp_greedy);
 	free_2d_array_pointer(mat_copy, row);
 	greedy[a][b] = greedy[a][b] - ai_max_search(temp_greedy);
 }
@@ -427,22 +434,49 @@ void matrix_copy(int **mat, int **mat_copy, int row, int col){
 	}
 }
 
-void print_greedy(int greedy[8][8], int row, int col){
+void print_greedy(double greedy[8][8], int row, int col){
 	for(int y = 0; y < row; y++){
                 for(int x = 0; x < col; x++){
 			if(greedy[y][x] > greedy_empty){
-                        	mvprintw(y + start_y, 2 * x + 24, "%d", greedy[y][x]);
+                        	mvprintw(y + start_y, 4 * x + 24, "%.1f", greedy[y][x]);
 			}
 			else {
-				mvprintw(y + start_y, 2 * x + 24, "X");
+				mvprintw(y + start_y, 4 * x + 24, "X");
 			}
                 }
         }
 }
 
-void make_priority(int **mat){
-	int priority_array[8][8] = {{7, 1, 6, 2, 2, 6, 1, 7}, {1, 1, 3, 3, 3, 3, 1, 1}, {6, 3, 5, 4, 4, 5, 3, 6}, {2, 3, 4, 0, 0, 4, 3, 2}, {2, 3, 4, 0, 0, 4, 3, 2}, {6, 3, 5, 4, 4, 5, 3, 6}, {1, 1, 3, 3, 3, 3, 1, 1}, {7, 1, 6, 2, 2, 6, 1, 7}};
-	int priority_max = 0, priority_index = 0;
+void make_priority(int **mat, double priority[8][8]){
+	int priority_value[8][8] = {
+		{7, 1, 6, 2, 2, 6, 1, 7}, 
+		{1, 1, 3, 3, 3, 3, 1, 1}, 
+		{6, 3, 5, 4, 4, 5, 3, 6}, 
+		{2, 3, 4, 0, 0, 4, 3, 2}, 
+		{2, 3, 4, 0, 0, 4, 3, 2}, 
+		{6, 3, 5, 4, 4, 5, 3, 6},
+	       	{1, 1, 3, 3, 3, 3, 1, 1}, 
+		{7, 1, 6, 2, 2, 6, 1, 7}};
+	init_greedy(priority);
+	for(int y = 0; y < 8; y++){
+		for(int x = 0; x < 8; x++){
+			if(mat[y][x] == Available){
+				priority[y][x] = priority_value[y][x];
+			}
+		}
+	}
+	change_value(priority);
+}
+
+void plus_mat(double greedy[8][8], double priority[8][8]){
+	double math_value = (1.5 * (double)turn_count) * (PI / 180);
+	for(int y = 0; y < 8; y++){
+		for(int x = 0; x < 8; x++){
+			if(greedy[y][x] > greedy_empty){
+			greedy[y][x] = sin(math_value) * greedy[y][x] + cos(math_value) * priority[y][x];
+			}
+		}
+	}
 }
 
 int available_check(int **mat){
