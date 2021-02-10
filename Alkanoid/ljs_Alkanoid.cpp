@@ -1,88 +1,177 @@
 #include "ljs_Alkanoid.hpp"
 #include <ncurses.h>
+#include <time.h>
 #include <unistd.h>
+
 using namespace Alkanoid;
 
 Ball::Ball() {
-    X = 17;
-    Y = 68;
-    JumpX = LEFT;
-    JumpY = UP;
+  X = 25;
+  Y = 33;
+  JumpX = LEFT;
+  JumpY = UP;
 }
 
 Ball &Ball::operator=(const Ball NewBall) {
-    X = NewBall.GetX();
-    Y = NewBall.GetY();
-    JumpX = NewBall.GetJumpX();
-    JumpY = NewBall.GetJumpY();
+  X = NewBall.GetX();
+  Y = NewBall.GetY();
+  JumpX = NewBall.GetJumpX();
+  JumpY = NewBall.GetJumpY();
 
-    return *this;
+  return *this;
 }
 
 bool Ball::IsNextWallX() {
-    return X == LEFTMAX+1 || X == RIGHTMAX-1; }
-bool Ball::IsNextWallY() {
-    return Y == UPMAX+1 || Y == DOWNMAX-1; }
+  return X + JumpX == LEFTMAX || X + JumpX == RIGHTMAX - 1;
+}
+bool Ball::IsNextWallY() { return Y + JumpY == UPMAX; }
 
 void Ball::ReflectionX() {
-    if(JumpX==RIGHT){
-        JumpX = LEFT;
-    } else {
-        JumpY = RIGHT;
-    }
+  if (JumpX == RIGHT) {
+    JumpX = LEFT;
+  } else {
+    JumpX = RIGHT;
+  }
 }
 
 void Ball::ReflectionY() {
-    if(JumpY==DOWN){
-        JumpY = UP;
+  if (JumpY == DOWN) {
+    JumpY = UP;
+  } else {
+    JumpY = DOWN;
+  }
+}
+
+Bar::Bar() : Length(0), StartLocation(0), ErarsePoint(0) {}
+
+Bar::Bar(int NewLength) {
+  Length = NewLength;
+  StartLocation = 25 - Length / 2;
+}
+
+void Bar::Move(int Way) {
+  if (!CheckLocate(Way)) {
+    if (Way == RIGHT) {
+      ErarsePoint = StartLocation;
     } else {
-        JumpY = DOWN;
+      ErarsePoint = StartLocation + Length - 1;
     }
+    StartLocation += Way;
+  }
+}
+
+bool Bar::CheckLocate(int Way) {
+  if (Way == RIGHT) {
+    return StartLocation + Length == RIGHTMAX - 1;
+  } else if (Way == LEFT) {
+    return StartLocation == LEFTMAX + 1;
+  } else {
+    return true;
+  }
 }
 
 void Board::InitSetting() {
-    initscr();
-    noecho();
-    keypad(stdscr,true);
-    nodelay(stdscr, true);
-    SetWinPtr(MakeWinPtr());
-    SetBall(MakeBall());
+  initscr();
+  noecho();
+  keypad(stdscr, true);
+  nodelay(stdscr, true);
+  curs_set(false);
+  SetGameScrPtr(MakeGameScrPtr());
+  SetScoreScrPtr(MakeScoreScrPtr());
+  SetBall(MakeBall());
+  SetBar(MakeBar());
 }
 
-WINDOW *Board::MakeWinPtr() {
-    return newwin(35,70,10,10); }
+WINDOW *Board::MakeGameScrPtr() { return newwin(35, 50, 3, 3); }
+WINDOW *Board::MakeScoreScrPtr() { return newwin(35, 20, 3, 53); }
 
 Ball Board::MakeBall() { return Ball(); }
 
-void Board::DrawPlayBoard() {
-    /*
-    while(1){
-        mvwprintw(GetScrPtr(), 0, 0, "*");
-    for (int i = 1; i < RIGHTMAX - 1; i++) {
-        mvwprintw(GetScrPtr(), 0, i, "-");
-    }
-    mvwprintw(GetScrPtr(), 0, RIGHTMAX-1, "*");
-
-    for (int i = 1; i < DOWNMAX - 1;i++){
-        mvwprintw(GetScrPtr(), i,0,"|");
-        mvwprintw(GetScrPtr(), i, RIGHTMAX - 1, "|");
-    }
-
-    mvwprintw(GetScrPtr(), DOWNMAX-1, 0, "*");
-    for (int i = 1; i < RIGHTMAX - 1; i++) {
-        mvwprintw(GetScrPtr(), DOWNMAX-1, i, "-");
-    }
-    mvwprintw(GetScrPtr(), DOWNMAX-1, RIGHTMAX-1, "*");
-
-    mvwprintw(GetScrPtr(), GetBall().GetY(), GetBall().GetX(), "&");
-
-    wrefresh(GetScrPtr());
-    GetBall().Move();
-    sleep(1);
-    }
-    */
-    mvprintw(68, 17, "&");
-    wrefresh(stdscr);
-    sleep(5);
-    endwin();
+bool Board::BallBarReflection() {
+  if (GetBall().GetJumpY() == DOWN && GetBall().GetY() == DOWNMAX - 3) {
+    return GetBall().GetX() >= GetBar().GetStartLocation() - 1 &&
+           GetBall().GetX() <= GetBar().GetStartLocation() + 1;
+  } else {
+    return false;
+  }
 }
+
+void Board::PlayBoard() {
+  time_t BallSpeedStart = clock();
+  while (!CheckGameEnd()) {
+    time_t Now = clock();
+    InsertKey();
+    DrawPlayBoard();
+    CheckReflection();
+    /*while (1) {
+      time_t BallSpeedEnd = clock();
+      if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > 0.1) {
+        MoveBall();
+        BallSpeedStart = clock();
+      }
+    }
+*/
+    MoveBall();
+
+    while (1) {
+      time_t End = clock();
+      if ((double)(End - Now) / CLOCKS_PER_SEC > 0.0167) {
+        break;
+      }
+    }
+  }
+  EndGame();
+}
+
+void Board::DrawPlayBoard() const {
+  DrawPlayBoardEdge();
+  DrawBall();
+  DrawUserBar();
+  wrefresh(GetGameScrPtr());
+  wrefresh(GetScoreScrPtr());
+}
+
+void Board::DrawPlayBoardEdge() const {
+  wborder(GetGameScrPtr(), '|', '|', '-', '-', '+', '+', '+', '+');
+  wborder(GetScoreScrPtr(), '|', '|', '-', '-', '+', '+', '+', '+');
+}
+
+void Board::DrawBall() const {
+  mvwprintw(GetGameScrPtr(), GetBall().GetY() - GetBall().GetJumpY(),
+            GetBall().GetX() - GetBall().GetJumpX(), " ");
+  mvwprintw(GetGameScrPtr(), GetBall().GetY(), GetBall().GetX(), "O");
+}
+void Board::CheckReflection() {
+  if (GetBall().IsNextWallX()) {
+    ReflectionX();
+  }
+  if (GetBall().IsNextWallY() || BallBarReflection()) {
+    ReflectionY();
+  }
+}
+
+Bar Board::MakeBar() { return Bar(5); }
+
+void Board::DrawUserBar() const {
+  mvwprintw(GetGameScrPtr(), GetBar().GetY(), GetBar().GetErasePoint(), " ");
+  for (int i = 0; i < GetBar().GetLength(); i++) {
+    mvwprintw(GetGameScrPtr(), GetBar().GetY(), i + GetBar().GetStartLocation(),
+              "^");
+  }
+}
+
+void Board::InsertKey() {
+  int Insert = getch();
+  switch (Insert) {
+  case KEY_RIGHT:
+    MoveBar(RIGHT);
+    break;
+  case KEY_LEFT:
+    MoveBar(LEFT);
+    break;
+  }
+}
+
+bool Board::CheckGameEnd() { return GetBall().GetY() == (DOWNMAX - 1); }
+
+void Board::EndGame() { endwin(); }

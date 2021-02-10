@@ -3,12 +3,9 @@
 
 using namespace Alkanoid;
 
-
 int main() {
-    Board BoardManager;
-    BoardManager.InitSetting();
-    //std::cout << BoardManager.GetBall().GetX() << " "
-    //          << BoardManager.GetBall().GetY() << std::endl;
-    BoardManager.DrawPlayBoard();
-    return 0;
+  Board BoardManager;
+  BoardManager.PlayBoard();
+
+  return 0;
 }
