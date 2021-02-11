@@ -22,9 +22,9 @@ Ball &Ball::operator=(const Ball NewBall) {
 }
 
 bool Ball::IsNextWallX() {
-  return X + JumpX == LEFTMAX || X + JumpX == RIGHTMAX - 1;
+  return X + JumpX == LEFTMAX + 1 || X + JumpX == RIGHTMAX - 2;
 }
-bool Ball::IsNextWallY() { return Y + JumpY == UPMAX; }
+bool Ball::IsNextWallY() { return Y + JumpY == UPMAX + 1; }
 
 void Ball::ReflectionX() {
   if (JumpX == RIGHT) {
@@ -90,7 +90,8 @@ Ball Board::MakeBall() { return Ball(); }
 bool Board::BallBarReflection() {
   if (GetBall().GetJumpY() == DOWN && GetBall().GetY() == DOWNMAX - 3) {
     return GetBall().GetX() >= GetBar().GetStartLocation() - 1 &&
-           GetBall().GetX() <= GetBar().GetStartLocation() + 1;
+           GetBall().GetX() <=
+               GetBar().GetStartLocation() + GetBar().GetLength();
   } else {
     return false;
   }
@@ -103,15 +104,12 @@ void Board::PlayBoard() {
     InsertKey();
     DrawPlayBoard();
     CheckReflection();
-    /*while (1) {
-      time_t BallSpeedEnd = clock();
-      if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > 0.1) {
-        MoveBall();
-        BallSpeedStart = clock();
-      }
+
+    time_t BallSpeedEnd = clock();
+    if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > 0.1) {
+      MoveBall();
+      BallSpeedStart = clock();
     }
-*/
-    MoveBall();
 
     while (1) {
       time_t End = clock();
