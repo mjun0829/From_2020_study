@@ -2,6 +2,7 @@
 #define __LJS_ALKANOID_HPP__
 
 #include <ncurses.h>
+#include <vector>
 
 namespace Alkanoid {
 // Ball의 변수 jumpx,jumpy에 들어가는 변수
@@ -64,7 +65,7 @@ public:
 // 추후 난이도에 따른 바의 길이를 수정할 것
 class Bar {
 private:
-  int Y = 33;
+  int Y;
   int Length;
   // Bar를 그릴 때 시작하는 위치
   int StartLocation;
@@ -87,6 +88,39 @@ public:
   bool CheckLocate(int Way);
 };
 
+// 벽돌 한 개를 구현하는 클래스.
+// 벽돌 사이즈는 2
+// 선언해야할 벽돌의 개수는 20개 라고 하자.
+class Brick {
+  private:
+    int X;
+    int Y;
+    bool IsEmpty;
+
+  public:
+    Brick();
+  // 위치를 인자로 받고, IsEmpty는 false
+    Brick(int NewX, int NewY);
+    int GetX() const { return X; }
+    int GetY() const { return Y; }
+    //비어있는지 확인하는 함수
+    // 공이 충돌했으면 비어있다고 하자.
+    bool GetEmpty() { return IsEmpty; }
+
+    // 벽돌이 공에 충돌했을 때 호출할 함수
+    void Destroyed() { IsEmpty =  true; }
+};
+
+// 20개의 벽돌들을 모아둔 벽돌 묶음을 담고있고, 이를 조절하는 클래스
+class Bricks {
+  private:
+    std::vector<Brick> BrickBundle;
+  public:
+    Bricks() {}
+    Bricks(int BrickNumber);
+    std::vector<Brick> GetBrickBundle() const { return BrickBundle; }
+};
+
 // ncurses.h 를 이용해서 스크린에 표시하는 함수들을 모아둔 클래스
 // 스크린의 크기는 75*35
 class Board {
@@ -95,6 +129,7 @@ private:
   Bar SourceBar;
   WINDOW *GameScreen;
   WINDOW *ScoreScreen;
+  Bricks SourceBricks;
 
 public:
   Board() { InitSetting(); }
@@ -103,6 +138,7 @@ public:
   Bar GetBar() const { return SourceBar; }
   WINDOW *GetGameScrPtr() const { return GameScreen; }
   WINDOW *GetScoreScrPtr() const { return ScoreScreen; }
+  Bricks GetBricks() const { return SourceBricks; }
 
   // 프로그램 실행시 WINDOW 포인터 및 공을 생성하는 함수를 실행시키는 함수
   void InitSetting();
@@ -120,6 +156,7 @@ public:
 
   void SetBall(Ball NewBall) { SourceBall = NewBall; }
   void SetBar(Bar NewBar) { SourceBar = NewBar; }
+  void SetBricks(Bricks NewBricks) { SourceBricks = NewBricks; }
 
   // 현재 공의 위치상태 및 플레이어의 막대 상태 등을 고려해서 게임의 스크린에
   // 한 프레임을 출력하는 함수
@@ -152,6 +189,12 @@ public:
 
   // 유저가 움직이는 바를 그리는 함수
   void DrawUserBar() const;
+
+  // 벽돌을 생성하는 함수
+  Bricks MakeBricks();
+
+  // 벽돌들을 그리는 함수
+  void DrawBricks() const;
 
   // 유저로부터 키를 받는 함수
   void InsertKey();
