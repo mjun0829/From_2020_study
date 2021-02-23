@@ -89,7 +89,7 @@ public:
 };
 
 // 벽돌 한 개를 구현하는 클래스.
-// 벽돌 사이즈는 2
+// 벽돌 사이즈는 가로3,세로2
 // 선언해야할 벽돌의 개수는 20개 라고 하자.
 class Brick {
   private:
@@ -194,7 +194,12 @@ public:
   Bricks MakeBricks();
 
   // 벽돌들을 그리는 함수
+  // 해당 벽돌이 비어있으면 DrawBrick(" ") 호출
+  // 해당 벽돌이 비어있지 않으면 DrawBrick("@") 호출
   void DrawBricks() const;
+
+  // 벽돌 하나를 해당 문자로 그리는 함수
+  void DrawBrick(Brick OneBrick,const char* Shape) const;
 
   // 유저로부터 키를 받는 함수
   void InsertKey();

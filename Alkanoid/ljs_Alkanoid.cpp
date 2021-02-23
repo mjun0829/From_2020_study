@@ -9,6 +9,10 @@ using namespace Alkanoid;
 #define BAR_LENGTH 5
 #define NUMBER_OF_BRICKS 100
 #define SECONDS_PER_FRAME 0.0167
+#define BRICK_WIDTH 3
+#define BRICK_HEIGHT 2
+#define BRICK_BLANK " "
+#define BRICK_SHAPE "@"
 
 Ball::Ball() {
   X = 25;
@@ -86,10 +90,10 @@ Bricks::Bricks(int BrickNumber) {
     int NowY = 1;
     for (int i = 0; i < BrickNumber; i++) {
         Result.push_back(Brick(NowX,NowY));
-        NowX += 2;
-        if(NowX>=RIGHTMAX-1){
+        NowX += BRICK_WIDTH;
+        if(NowX>(RIGHTMAX-BRICK_WIDTH)){
             NowX = 1;
-            NowY++;
+            NowY += BRICK_HEIGHT;
         }
     }
     BrickBundle = Result;
@@ -188,20 +192,22 @@ void Board::DrawUserBar() const {
 Bricks Board::MakeBricks() { return Bricks(NUMBER_OF_BRICKS); }
 
 void Board::DrawBricks() const {
-    std::vector<Brick> TempBrick = GetBricks().GetBrickBundle();
-    for (int i = 0; i < NUMBER_OF_BRICKS; i++) {
-        if (TempBrick[i].GetEmpty()) {
-            mvwprintw(GetGameScrPtr(), TempBrick[i].GetY(), TempBrick[i].GetX(),
-                      " ");
-            mvwprintw(GetGameScrPtr(), TempBrick[i].GetY(), TempBrick[i].GetX()+1,
-                      " ");
-        } else {
-            mvwprintw(GetGameScrPtr(), TempBrick[i].GetY(), TempBrick[i].GetX(),
-                      "@");
-            mvwprintw(GetGameScrPtr(), TempBrick[i].GetY(), TempBrick[i].GetX()+1,
-                      "@");
-        }
+  std::vector<Brick> TempBrick = GetBricks().GetBrickBundle();
+  for (int i = 0; i < NUMBER_OF_BRICKS; i++) {
+    if (TempBrick[i].GetEmpty()) {
+        DrawBrick(TempBrick[i],BRICK_BLANK);
+    } else {
+      DrawBrick(TempBrick[i],BRICK_SHAPE);
     }
+  }
+}
+
+void Board::DrawBrick(Brick OneBrick,const char *Shape) const {
+  for (int i = 0; i < BRICK_HEIGHT;i++){
+      for (int j = 0; j < BRICK_WIDTH;j++){
+          mvwprintw(GetGameScrPtr(),OneBrick.GetY()+i,OneBrick.GetX()+j,Shape);
+      }
+  }
 }
 
 void Board::InsertKey() {
