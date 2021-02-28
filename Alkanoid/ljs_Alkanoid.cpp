@@ -11,12 +11,14 @@ using namespace Alkanoid;
 #define SECONDS_PER_FRAME 0.0167
 #define BRICK_WIDTH 3
 #define BRICK_HEIGHT 2
-#define BRICK_BLANK " "
+#define BLANK " "
 #define BRICK_SHAPE "@"
+#define BALL_SHAPE "O"
+#define BAR_SHAPE "^"
 
 Ball::Ball() {
-  X = 25;
-  Y = 33;
+  X = RIGHTMAX/2;
+  Y = DOWNMAX-3;
   JumpX = LEFT;
   JumpY = UP;
 }
@@ -29,11 +31,6 @@ Ball &Ball::operator=(const Ball NewBall) {
 
   return *this;
 }
-
-bool Ball::IsNextWallX() {
-  return X + JumpX == LEFTMAX + 1 || X + JumpX == RIGHTMAX - 2;
-}
-bool Ball::IsNextWallY() { return Y + JumpY == UPMAX + 1; }
 
 void Ball::ReflectionX() {
   if (JumpX == RIGHT) {
@@ -51,12 +48,12 @@ void Ball::ReflectionY() {
   }
 }
 
-Bar::Bar() : Y(33), Length(0), StartLocation(0), ErarsePoint(0) {}
+Bar::Bar() : Y(DOWNMAX-2), Length(0), StartLocation(0), ErarsePoint(0) {}
 
 Bar::Bar(int NewLength) {
-    Y = 33;
+    Y = DOWNMAX-2;
     Length = NewLength;
-    StartLocation = 25 - Length / 2;
+    StartLocation = RIGHTMAX/2 - Length / 2;
 }
 
 void Bar::Move(int Way) {
@@ -105,17 +102,43 @@ void Board::InitSetting() {
   keypad(stdscr, true);
   nodelay(stdscr, true);
   curs_set(false);
-  SetGameScrPtr(MakeGameScrPtr());
+  std::vector<std::vector<int>> NewBlockStatus = InitEmptyBlockStatus();
+  SetGameScrPtr(MakeGameScrPtr(NewBlockStatus));
   SetScoreScrPtr(MakeScoreScrPtr());
-  SetBall(MakeBall());
-  SetBar(MakeBar());
-  SetBricks(MakeBricks());
+  SetBall(MakeBall(NewBlockStatus));
+  SetBar(MakeBar(NewBlockStatus));
+  SetBricks(MakeBricks(NewBlockStatus));
+  SetBlockStatus(NewBlockStatus);
 }
 
-WINDOW *Board::MakeGameScrPtr() { return newwin(35, 50, 3, 3); }
-WINDOW *Board::MakeScoreScrPtr() { return newwin(35, 20, 3, 53); }
+std::vector<std::vector<int>> Board::InitEmptyBlockStatus(){
+  std::vector<std::vector<int>> Result;
+    for (int i = 0; i < DOWNMAX; i++) {
+        std::vector<int> TempArray;
+        for (int j = 0; j < RIGHTMAX;j++){
+            TempArray.push_back(EMPTY);
+        }
+      Result.push_back(TempArray);
+    }
+  return Result;
+}
 
-Ball Board::MakeBall() { return Ball(); }
+WINDOW *Board::MakeGameScrPtr(std::vector<std::vector<int>>& NewBlockStatus) {
+  for (int i = 0; i < DOWNMAX;i++){
+    for (int j = 0; j < RIGHTMAX;j++){
+      if((i==UPMAX)||(i==DOWNMAX-1)||(j==LEFTMAX)||(j==RIGHTMAX-1)){            NewBlockStatus[i][j] = WALL;
+      }
+    }
+  }
+  return newwin(DOWNMAX, RIGHTMAX, 3, 3);
+}
+WINDOW *Board::MakeScoreScrPtr() { return newwin(DOWNMAX, 20, 3, 3+RIGHTMAX); }
+
+Ball Board::MakeBall(std::vector<std::vector<int>> &BlockStatus) {
+    Ball NewBall = Ball();
+    ChangeBlockStatus(BlockStatus, NewBall.GetY(), NewBall.GetX(), BALL);
+    return NewBall;
+}
 
 bool Board::BallBarReflection() {
   if (GetBall().GetJumpY() == DOWN && GetBall().GetY() == DOWNMAX - 3) {
@@ -134,6 +157,7 @@ void Board::PlayBoard() {
     InsertKey();
     DrawPlayBoard();
     CheckReflection();
+    RemoveBricks();
 
     time_t BallSpeedEnd = clock();
     if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC >0.1) {
@@ -147,15 +171,16 @@ void Board::PlayBoard() {
         break;
       }
     }
+
   }
   EndGame();
 }
 
 void Board::DrawPlayBoard() const {
-  DrawPlayBoardEdge();
   DrawBall();
   DrawUserBar();
   DrawBricks();
+  DrawPlayBoardEdge();
   wrefresh(GetGameScrPtr());
   wrefresh(GetScoreScrPtr());
 }
@@ -167,35 +192,128 @@ void Board::DrawPlayBoardEdge() const {
 
 void Board::DrawBall() const {
   mvwprintw(GetGameScrPtr(), GetBall().GetY() - GetBall().GetJumpY(),
-            GetBall().GetX() - GetBall().GetJumpX(), " ");
-  mvwprintw(GetGameScrPtr(), GetBall().GetY(), GetBall().GetX(), "O");
+            GetBall().GetX() - GetBall().GetJumpX(), BLANK);
+  mvwprintw(GetGameScrPtr(), GetBall().GetY(), GetBall().GetX(),BALL_SHAPE);
 }
+
 void Board::CheckReflection() {
-  if (GetBall().IsNextWallX()) {
-    ReflectionX();
-  }
-  if (GetBall().IsNextWallY() || BallBarReflection()) {
-    ReflectionY();
+  int StatusPos1 = GetBlockStatus()[GetBall().GetY() + GetBall().GetJumpY()][GetBall().GetX()];
+  int StatusPos2 = GetBlockStatus()[GetBall().GetY() + GetBall().GetJumpY()][GetBall().GetX() + GetBall().GetJumpX()];
+  int StatusPos3 = GetBlockStatus()[GetBall().GetY()][GetBall().GetX() + GetBall().GetJumpX()];
+
+  if(StatusPos1==EMPTY && StatusPos3==EMPTY){
+    if(StatusPos2!=EMPTY){
+        ReflectionX();
+        ReflectionY();
+    }
+  } else {
+    if(StatusPos1==EMPTY){
+        ReflectionX();
+    } else if(StatusPos3==EMPTY){
+        ReflectionY();
+    } else {
+        ReflectionX();
+        ReflectionY();
+    }
   }
 }
 
-Bar Board::MakeBar() { return Bar(BAR_LENGTH); }
+void Board::RemoveBricks() {
+
+  Bricks TempBricks = GetBricks();
+  std::vector<Brick> TempBrickBundle = TempBricks.GetBrickBundle();
+
+  int PosX = GetBall().GetX();
+  int PosY = GetBall().GetY();
+  int JumpX = GetBall().GetJumpX();
+  int JumpY = GetBall().GetJumpY();
+
+  int PosNumX[3] = {PosX, PosX + JumpX, PosX + JumpX};
+  int PosNumY[3] = {PosY + JumpY, PosY + JumpY, PosY};
+
+  std::vector<int> BrickNumbers;
+
+  for (int i = 0; i < 3;i++){
+    if(IsBrick(PosNumY[i],PosNumX[i])){
+        BrickNumbers.push_back(GetBrickNum(ConvertX(PosNumX[i]), ConvertY(PosNumY[i])));
+    }
+  }
+
+  for (int BrickNumber : BrickNumbers) {
+      if (BrickNumber < NUMBER_OF_BRICKS) {
+          TempBrickBundle[BrickNumber].Remove();
+          MakeEmpty(BrickNumber);
+      }
+  }
+
+  TempBricks.SetBrickBundle(TempBrickBundle);
+  SetBricks(TempBricks);
+}
+
+bool Board::IsBrick(int Y, int X) { return GetBlockStatus()[Y][X] == BRICK; }
+
+
+void Board::MakeEmpty(int BrickNumber) {
+    int BlocksInLine = (RIGHTMAX - 2) / BRICK_WIDTH;
+    int PosX = BrickNumber % BlocksInLine;
+    PosX = PosX * BRICK_WIDTH + 1;
+    int PosY = BrickNumber / BlocksInLine;
+    PosY = PosY * BRICK_HEIGHT + 1;
+    for (int i = 0; i < BRICK_HEIGHT; i++) {
+        for (int j = 0; j < BRICK_WIDTH; j++) {
+            BlockStatus[PosY + i][PosX + j] = EMPTY;
+        }
+    }
+}
+
+int Board::ConvertX(int X) { return (X - 1) / BRICK_WIDTH; }
+int Board::ConvertY(int Y) { return (Y - 1) / BRICK_HEIGHT; }
+
+int Board::GetBrickNum(int ConvertedX, int ConvertedY){
+    return ((RIGHTMAX - 2) / BRICK_WIDTH) * ConvertedY + ConvertedX;
+}
+
+void Board::MoveBall() {
+  std::vector<std::vector<int>> TempBlockStatus = GetBlockStatus();
+  ChangeBlockStatus(TempBlockStatus, GetBall().GetY(), GetBall().GetX(),EMPTY);
+  SourceBall.Move();
+  ChangeBlockStatus(TempBlockStatus, GetBall().GetY(), GetBall().GetX(),BALL);
+  SetBlockStatus(TempBlockStatus);
+}
+
+Bar Board::MakeBar(std::vector<std::vector<int>> &BlockStatus) {
+  Bar NewBar = Bar(BAR_LENGTH);
+  for (int i = 0; i < BAR_LENGTH;i++){
+    ChangeBlockStatus(BlockStatus, NewBar.GetY(), NewBar.GetStartLocation() + i, BAR);
+    }
+  return NewBar;
+}
 
 void Board::DrawUserBar() const {
   mvwprintw(GetGameScrPtr(), GetBar().GetY(), GetBar().GetErasePoint(), " ");
   for (int i = 0; i < GetBar().GetLength(); i++) {
     mvwprintw(GetGameScrPtr(), GetBar().GetY(), i + GetBar().GetStartLocation(),
-              "^");
+              BAR_SHAPE);
   }
 }
 
-Bricks Board::MakeBricks() { return Bricks(NUMBER_OF_BRICKS); }
+Bricks Board::MakeBricks(std::vector<std::vector<int>> &BlockStatus) {
+  Bricks NewBricks = Bricks(NUMBER_OF_BRICKS);
+  for(Brick OneBrick : NewBricks.GetBrickBundle()){
+    for (int j = 0; j < BRICK_HEIGHT;j++){
+      for (int k = 0; k < BRICK_WIDTH;k++){
+        ChangeBlockStatus(BlockStatus, OneBrick.GetY() + j,OneBrick.GetX() + k, BRICK);
+        }
+    }
+  }
+  return NewBricks;
+}
 
 void Board::DrawBricks() const {
   std::vector<Brick> TempBrick = GetBricks().GetBrickBundle();
   for (int i = 0; i < NUMBER_OF_BRICKS; i++) {
     if (TempBrick[i].GetEmpty()) {
-        DrawBrick(TempBrick[i],BRICK_BLANK);
+        DrawBrick(TempBrick[i],BLANK);
     } else {
       DrawBrick(TempBrick[i],BRICK_SHAPE);
     }
@@ -204,9 +322,9 @@ void Board::DrawBricks() const {
 
 void Board::DrawBrick(Brick OneBrick,const char *Shape) const {
   for (int i = 0; i < BRICK_HEIGHT;i++){
-      for (int j = 0; j < BRICK_WIDTH;j++){
-          mvwprintw(GetGameScrPtr(),OneBrick.GetY()+i,OneBrick.GetX()+j,Shape);
-      }
+    for (int j = 0; j < BRICK_WIDTH;j++){
+      mvwprintw(GetGameScrPtr(),OneBrick.GetY()+i,OneBrick.GetX()+j,Shape);
+    }
   }
 }
 
@@ -222,6 +340,27 @@ void Board::InsertKey() {
   }
 }
 
-bool Board::CheckGameEnd() { return GetBall().GetY() == (DOWNMAX - 1); }
+void Board::MoveBar(int Way) {
+  std::vector<std::vector<int>> NewBlockstatus = GetBlockStatus();
+  for (int i = 0; i < BAR_LENGTH;i++){
+    NewBlockstatus[GetBar().GetY()][GetBar().GetStartLocation() + i] = EMPTY;
+  }
+  SourceBar.Move(Way);
+  for (int i = 0; i < BAR_LENGTH;i++){
+    NewBlockstatus[GetBar().GetY()][GetBar().GetStartLocation() + i] = BAR;
+  }
+  SetBlockStatus(NewBlockstatus);
+}
 
-void Board::EndGame() { endwin(); }
+bool Board::CheckGameEnd() { return GetBall().GetY() == (DOWNMAX - 2); }
+
+void Board::EndGame() {
+  endwin();
+  std::vector<std::vector<int>> temp = GetBlockStatus();
+    for (int i = 0; i < DOWNMAX; i++) {
+        for (int j = 0; j < RIGHTMAX;j++){
+            std::cout << temp[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}

@@ -9,6 +9,7 @@ namespace Alkanoid {
 enum DirectionX { RIGHT = 1, LEFT = -1 };
 enum DirectionY { UP = -1, DOWN = 1 };
 enum WallSize { LEFTMAX = 0, RIGHTMAX = 50, UPMAX = 0, DOWNMAX = 35 };
+enum BlockStatus { EMPTY, BAR, BRICK, BALL, WALL };
 
 // 공을 위치정보/운동방향을 저장하고 있는 클래스.
 // 공을 움직이는 과정을 X=X+JumpX, Y=Y+JumpY로 구현한다.
@@ -41,14 +42,6 @@ public:
     X += JumpX;
     Y += JumpY;
   }
-
-  // 다음 이동이 y축에 평행한 벽을 넘는지를 반환
-  // true라면 ReflectionX 호출을 통해서 JumpX 수정
-  bool IsNextWallX();
-
-  // 다음 이동이 x축에 평행한 벽을 넘는지를 반환
-  // true라면 ReflectionY 호출을 통해서 JumpY 수정
-  bool IsNextWallY();
 
   // JumpX를 수정하는 함수
   // RIGHT <-> LEFT
@@ -108,7 +101,7 @@ class Brick {
     bool GetEmpty() { return IsEmpty; }
 
     // 벽돌이 공에 충돌했을 때 호출할 함수
-    void Destroyed() { IsEmpty =  true; }
+    void Remove() { IsEmpty = true; }
 };
 
 // 20개의 벽돌들을 모아둔 벽돌 묶음을 담고있고, 이를 조절하는 클래스
@@ -119,10 +112,15 @@ class Bricks {
     Bricks() {}
     Bricks(int BrickNumber);
     std::vector<Brick> GetBrickBundle() const { return BrickBundle; }
+    void SetBrickBundle(std::vector<Brick> NewBundle) {
+        BrickBundle = NewBundle;
+    }
 };
 
 // ncurses.h 를 이용해서 스크린에 표시하는 함수들을 모아둔 클래스
 // 스크린의 크기는 75*35
+// BlockStatus는 각 칸의 크기의 상태를 표시하는 함수이고, 값은 오직 enum BlockStatus만이
+// 가능하다.
 class Board {
 private:
   Ball SourceBall;
@@ -130,6 +128,7 @@ private:
   WINDOW *GameScreen;
   WINDOW *ScoreScreen;
   Bricks SourceBricks;
+  std::vector<std::vector<int>> BlockStatus;
 
 public:
   Board() { InitSetting(); }
@@ -139,20 +138,32 @@ public:
   WINDOW *GetGameScrPtr() const { return GameScreen; }
   WINDOW *GetScoreScrPtr() const { return ScoreScreen; }
   Bricks GetBricks() const { return SourceBricks; }
+  std::vector<std::vector<int>> GetBlockStatus() const { return BlockStatus; }
 
   // 프로그램 실행시 WINDOW 포인터 및 공을 생성하는 함수를 실행시키는 함수
   void InitSetting();
 
+  // 35*50짜리 모든 변수가 EMPTY인 array를 반환
+ std::vector<std::vector<int>> InitEmptyBlockStatus();
+
+  //SourceBlockStatus의 y,x의 값을 Value로 수정하는 함수
+  void ChangeBlockStatus(std::vector<std::vector<int>> &SourceBlockStatus,int Y,int X, int Value){
+      SourceBlockStatus[Y][X] = Value;
+  }
+
   // WINDOW 포인터 생성하는 함수
-  WINDOW *MakeGameScrPtr();
+  WINDOW *MakeGameScrPtr(std::vector<std::vector<int>> &NewBlockStatus);
   WINDOW *MakeScoreScrPtr();
 
   // Mutator
   void SetGameScrPtr(WINDOW *NewPtr) { GameScreen = NewPtr; }
   void SetScoreScrPtr(WINDOW *NewPtr) { ScoreScreen = NewPtr; }
+  void SetBlockStatus(std::vector<std::vector<int>> NewBlockStatus){
+      BlockStatus=NewBlockStatus;
+  }
 
   // 공을 생성하는 함수
-  Ball MakeBall();
+  Ball MakeBall(std::vector<std::vector<int>> &BlockStatus);
 
   void SetBall(Ball NewBall) { SourceBall = NewBall; }
   void SetBar(Bar NewBar) { SourceBar = NewBar; }
@@ -174,8 +185,27 @@ public:
   // SourceBall의 Reflection여부를 파악하는 함수
   void CheckReflection();
 
+  // pos1,pos2,pos3중 비어있지 않은 위치 중에서 벽돌이라면 해당 벽돌을 찾아서 remove
+  void RemoveBricks();
+
+  // 해당 좌표가 벽돌인지 반환하는 함수
+  bool IsBrick(int Y, int X);
+
+  // BrickNumber에 해당하는 블록들을 전부 blockstatus에서 empty로 변경하는 함수
+  void MakeEmpty(int BrickNumber);
+
+  // x좌표를 BrickNum으로 변환할 수 있도록 바꿔주는 함수
+  int ConvertX(int X);
+
+  // y좌표를 BrickNum으로 변환할 수 있도록 바꿔주는 함수
+  int ConvertY(int Y);
+
+  // 변환된 x,y좌표를 BrickNum으로 바꾸는 함수
+  // X,Y에는 변환된 좌표만 들어갈 수 있다.
+  int GetBrickNum(int ConvertedY, int ConvertedX);
+
   // SourceBall의 Move함수 호출
-  void MoveBall() { SourceBall.Move(); }
+  void MoveBall();
 
   // Ball과 Bar에서 반사되는지 여부를 반환하는 함수
   bool BallBarReflection();
@@ -185,13 +215,13 @@ public:
   void ReflectionY() { SourceBall.ReflectionY(); }
 
   // 유저가 움직이는 바를 만드는 함수
-  Bar MakeBar();
+  Bar MakeBar(std::vector<std::vector<int>> &BlockStatus);
 
   // 유저가 움직이는 바를 그리는 함수
   void DrawUserBar() const;
 
   // 벽돌을 생성하는 함수
-  Bricks MakeBricks();
+  Bricks MakeBricks(std::vector<std::vector<int>> &BlockStatus);
 
   // 벽돌들을 그리는 함수
   // 해당 벽돌이 비어있으면 DrawBrick(" ") 호출
@@ -205,7 +235,7 @@ public:
   void InsertKey();
 
   // InsertKey를 바탕으로 바의 Move함수 호출하는 함수
-  void MoveBar(int Way) { SourceBar.Move(Way); }
+  void MoveBar(int Way);
 
   // 공이 벽에 닿았는지 확인하는 함수
   // true라면 PlayBoard()내의 무한루프를 빠져나온다.
