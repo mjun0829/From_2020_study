@@ -6,15 +6,16 @@
 
 using namespace Alkanoid;
 
-#define BAR_LENGTH 5
+#define BAR_LENGTH 10
 #define NUMBER_OF_BRICKS 10
-#define SECONDS_PER_FRAME 0.0167
+#define SECONDS_PER_FRAME 0.001
 #define BRICK_WIDTH 3
 #define BRICK_HEIGHT 4
 #define BLANK " "
 #define BRICK_SHAPE "@"
 #define BALL_SHAPE "O"
 #define BAR_SHAPE "^"
+#define BALL_SPEED 0.1
 
 Ball::Ball() {
   X = RIGHTMAX/2;
@@ -112,6 +113,25 @@ void Board::InitSetting() {
   SetBlockStatus(NewBlockStatus);
 }
 
+void Board::CountDown() const {
+  int Count = 3;
+  DrawPlayBoardEdge();
+  while (Count >= 0) {
+      time_t Start = clock();
+      mvwprintw(GetGameScrPtr(), DOWNMAX / 2, (RIGHTMAX - 2) / 2, "%d", Count);
+      wrefresh(GetGameScrPtr());
+      while (1) {
+          time_t End = clock();
+          if ((double)(End - Start) / CLOCKS_PER_SEC >= 1) {
+              Start = clock();
+              break;
+          }
+      }
+      Count--;
+  }
+  mvwprintw(GetGameScrPtr(), DOWNMAX / 2, (RIGHTMAX - 2) / 2, " ");
+}
+
 std::vector<std::vector<int>> Board::InitEmptyBlockStatus(){
   std::vector<std::vector<int>> Result;
     for (int i = 0; i < DOWNMAX; i++) {
@@ -142,39 +162,46 @@ Ball Board::MakeBall(std::vector<std::vector<int>> &BlockStatus) {
 }
 
 void Board::PlayBoard() {
-  time_t BallSpeedStart = clock();
-  while (!CheckGameEnd()) {
-    time_t Now = clock();
-    InsertKey();
-    DrawPlayBoard();
-    CheckReflection();
-
-    time_t BallSpeedEnd = clock();
-    if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > 0.01) {
-      MoveBall();
-      BallSpeedStart = clock();
-    }
-
+    CountDown();
+    time_t BallSpeedStart = clock();
     while (1) {
-      time_t End = clock();
-      if ((double)(End - Now) / CLOCKS_PER_SEC > SECONDS_PER_FRAME) {
-        break;
-      }
-    }
+        time_t Now = clock();
+        InsertKey();
+        DrawPlayBoard();
+        CheckReflection();
 
-  if(CheckVictory()){
-      DrawPlayBoard();
-      DeclareVictory();
-      break;
-    }
+        time_t BallSpeedEnd = clock();
+        if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > BALL_SPEED) {
+            MoveBall();
+            BallSpeedStart = clock();
+        }
+
+        while (1) {
+            time_t End = clock();
+            if ((double)(End - Now) / CLOCKS_PER_SEC > SECONDS_PER_FRAME) {
+                break;
+            }
+        }
+
+        if (CheckVictory()) {
+            DrawPlayBoard();
+            DeclareVictory();
+            break;
+        }
+        if (CheckGameEnd()){
+            DrawPlayBoard();
+            DeclareDefeat();
+            break;
+        }
   }
   EndGame();
 }
 
+
 void Board::DrawPlayBoard() const {
+  DrawBricks();
   DrawBall();
   DrawUserBar();
-  DrawBricks();
   DrawPlayBoardEdge();
   DrawScore();
   wrefresh(GetGameScrPtr());
@@ -370,9 +397,9 @@ void Board::DrawScore() const {
   mvwprintw(GetScoreScrPtr(), 2, 1, "%d", GetScore());
 }
 
-bool Board::CheckGameEnd() { return GetBall().GetY() == (DOWNMAX - 2); }
+bool Board::CheckGameEnd() const { return GetBall().GetY() == (DOWNMAX - 2); }
 
-bool Board::CheckVictory() {
+bool Board::CheckVictory() const {
   for(Brick OneBrick : GetBricks().GetBrickBundle()){
     if(!OneBrick.GetEmpty()){
         return false;
@@ -381,12 +408,17 @@ bool Board::CheckVictory() {
   return true;
 }
 
-void Board::DeclareVictory() {
+void Board::DeclareVictory() const {
     mvwprintw(GetGameScrPtr(),DOWNMAX/2,(RIGHTMAX-4)/2,"WIN");
     wrefresh(GetGameScrPtr());
 }
 
+void Board::DeclareDefeat() const {
+    mvwprintw(GetGameScrPtr(),DOWNMAX/2,(RIGHTMAX-4)/2,"LOSE");
+    wrefresh(GetGameScrPtr());
+}
+
 void Board::EndGame() {
-    sleep(3);
+    sleep(2);
     endwin();
 }

@@ -11,6 +11,48 @@ enum DirectionY { UP = -1, DOWN = 1 };
 enum WallSize { LEFTMAX = 0, RIGHTMAX = 50, UPMAX = 0, DOWNMAX = 35 };
 enum BlockStatus { EMPTY, BAR, BRICK, BALL, WALL };
 
+// define으로 정의되어있는 전역상수를 option을 통해서 바꿀 수 있게 하는 함수.
+class Options{
+  private:
+    int BAR_LENGTH;
+    int NUMBER_OF_BRICKS;
+    int BRICK_WIDTH;
+    int BRICK_HEIGHT;
+    double BALL_SPEED;
+
+  public:
+    Options();
+
+    int GetBarLength() const { return BAR_LENGTH; }
+    int GetNumberOfBricks() const { return NUMBER_OF_BRICKS; }
+    int GetBrickWidth() const { return BRICK_WIDTH; }
+    int GetBrickHeight() const { return BRICK_HEIGHT; }
+    double GetBallSpeed() const { return BALL_SPEED; }
+
+    void SetBarLength(int NewBarLength) { BAR_LENGTH = NewBarLength; }
+    void SetNubmerOfBricks(int NewNumberOfBricks){ NUMBER_OF_BRICKS = NewNumberOfBricks; }
+    void SetNewBrickWidth(int NewBrickWidth){ BRICK_WIDTH = NewBrickWidth; }
+    void SetNewBrickHeight(int NewBrickHeight){ BRICK_HEIGHT=NewBrickHeight; }
+    void SetBallSpeed(double NewSpeed){ BALL_SPEED=NewSpeed; }
+
+};
+
+// 게임시작화면에서 넘어갈 수 있는 옵션메뉴
+// 여기서 class Option의 변수들을 수정할 수 있다.
+
+class OptionMenu {
+
+};
+
+// 게임을 실행했을 때 나오는 시작메뉴
+// 1. 게임시작 -> BoardManager.PlayBoard로 연결
+// 2. 옵션 -> OptionMenu로 연결
+// 3. 나가기 -> 멘트와 함께 게임 종료 endwin()이 포함되어있어야함!
+// 기능이 있다.
+class StartMenu {
+
+};
+
 // 공을 위치정보/운동방향을 저장하고 있는 클래스.
 // 공을 움직이는 과정을 X=X+JumpX, Y=Y+JumpY로 구현한다.
 class Ball {
@@ -143,10 +185,14 @@ public:
   int GetScore() const { return Score; }
 
   // 프로그램 실행시 WINDOW 포인터 및 공을 생성하는 함수를 실행시키는 함수
+  // 초기 점수는 100점
   void InitSetting();
 
+  // 메인메뉴에서 넘어왔을 때 카운트 다운 표시하는 함수
+  void CountDown() const;
+
   // 35*50짜리 모든 변수가 EMPTY인 array를 반환
- std::vector<std::vector<int>> InitEmptyBlockStatus();
+  std::vector<std::vector<int>> InitEmptyBlockStatus();
 
   //SourceBlockStatus의 y,x의 값을 Value로 수정하는 함수
   void ChangeBlockStatus(std::vector<std::vector<int>> &SourceBlockStatus,int Y,int X, int Value){
@@ -192,6 +238,8 @@ public:
   void RemoveBricks();
 
   // Add만큼 점수를 갱신하는 함수
+  // 공이 움직일 때마다 -1점
+  // 블록을 하나 부술때마다 블록의 크기*100점 추가
   void AddScore(int Add);
 
   // 해당 좌표가 벽돌인지 반환하는 함수
@@ -245,19 +293,26 @@ public:
 
   // 공이 벽에 닿았는지 확인하는 함수
   // true라면 PlayBoard()내의 무한루프를 빠져나온다.
-  bool CheckGameEnd();
+  bool CheckGameEnd() const;
 
   // 모든 벽돌이 부서졌는데 확인하는 함수
   // true라면 승리멘트를 보여주고 무한루프를 빠져나온다.
-  bool CheckVictory();
+  bool CheckVictory() const;
 
   // 승리시 나오는 멘트를 담고 있는 함수
-  void DeclareVictory();
+  void DeclareVictory() const;
+
+  // 패배시 나오는 멘트를 담고 있는 함수
+  void DeclareDefeat() const;
 
   // 게임 종료시 호출하는 함수
-  // 추후 스코어를 보여주는 함수를 출력할 것
+  // endwin()은 추후에 빠져야할 것
+  // 게임시작메뉴로 들어가야함
   void EndGame();
+
 };
+
+
 } // namespace Alkanoid
 
 #endif
