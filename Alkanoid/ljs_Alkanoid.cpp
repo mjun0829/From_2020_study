@@ -7,10 +7,10 @@
 using namespace Alkanoid;
 
 #define BAR_LENGTH 5
-#define NUMBER_OF_BRICKS 100
+#define NUMBER_OF_BRICKS 10
 #define SECONDS_PER_FRAME 0.0167
 #define BRICK_WIDTH 3
-#define BRICK_HEIGHT 2
+#define BRICK_HEIGHT 4
 #define BLANK " "
 #define BRICK_SHAPE "@"
 #define BALL_SHAPE "O"
@@ -102,6 +102,7 @@ void Board::InitSetting() {
   keypad(stdscr, true);
   nodelay(stdscr, true);
   curs_set(false);
+  Score = 100;
   std::vector<std::vector<int>> NewBlockStatus = InitEmptyBlockStatus();
   SetGameScrPtr(MakeGameScrPtr(NewBlockStatus));
   SetScoreScrPtr(MakeScoreScrPtr());
@@ -140,16 +141,6 @@ Ball Board::MakeBall(std::vector<std::vector<int>> &BlockStatus) {
     return NewBall;
 }
 
-bool Board::BallBarReflection() {
-  if (GetBall().GetJumpY() == DOWN && GetBall().GetY() == DOWNMAX - 3) {
-    return GetBall().GetX() >= GetBar().GetStartLocation() - 1 &&
-           GetBall().GetX() <=
-               GetBar().GetStartLocation() + GetBar().GetLength();
-  } else {
-    return false;
-  }
-}
-
 void Board::PlayBoard() {
   time_t BallSpeedStart = clock();
   while (!CheckGameEnd()) {
@@ -157,10 +148,9 @@ void Board::PlayBoard() {
     InsertKey();
     DrawPlayBoard();
     CheckReflection();
-    RemoveBricks();
 
     time_t BallSpeedEnd = clock();
-    if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC >0.1) {
+    if ((double)(BallSpeedEnd - BallSpeedStart) / CLOCKS_PER_SEC > 0.01) {
       MoveBall();
       BallSpeedStart = clock();
     }
@@ -172,6 +162,11 @@ void Board::PlayBoard() {
       }
     }
 
+  if(CheckVictory()){
+      DrawPlayBoard();
+      DeclareVictory();
+      break;
+    }
   }
   EndGame();
 }
@@ -181,6 +176,7 @@ void Board::DrawPlayBoard() const {
   DrawUserBar();
   DrawBricks();
   DrawPlayBoardEdge();
+  DrawScore();
   wrefresh(GetGameScrPtr());
   wrefresh(GetScoreScrPtr());
 }
@@ -203,23 +199,32 @@ void Board::CheckReflection() {
 
   if(StatusPos1==EMPTY && StatusPos3==EMPTY){
     if(StatusPos2!=EMPTY){
+        RemoveBricks();
         ReflectionX();
         ReflectionY();
+        return;
+    } else {
+        return;
     }
   } else {
     if(StatusPos1==EMPTY){
+        RemoveBricks();
         ReflectionX();
-    } else if(StatusPos3==EMPTY){
+        return;
+    } else if (StatusPos3 == EMPTY) {
+        RemoveBricks();
         ReflectionY();
+        return;
     } else {
+        RemoveBricks();
         ReflectionX();
         ReflectionY();
+        return;
     }
   }
 }
 
 void Board::RemoveBricks() {
-
   Bricks TempBricks = GetBricks();
   std::vector<Brick> TempBrickBundle = TempBricks.GetBrickBundle();
 
@@ -243,11 +248,17 @@ void Board::RemoveBricks() {
       if (BrickNumber < NUMBER_OF_BRICKS) {
           TempBrickBundle[BrickNumber].Remove();
           MakeEmpty(BrickNumber);
+          AddScore(BRICK_HEIGHT * BRICK_WIDTH * 100);
       }
   }
 
   TempBricks.SetBrickBundle(TempBrickBundle);
   SetBricks(TempBricks);
+}
+
+void Board::AddScore(int Add) {
+  int NewScore = GetScore();
+  SetScore(NewScore+Add);
 }
 
 bool Board::IsBrick(int Y, int X) { return GetBlockStatus()[Y][X] == BRICK; }
@@ -277,7 +288,8 @@ void Board::MoveBall() {
   std::vector<std::vector<int>> TempBlockStatus = GetBlockStatus();
   ChangeBlockStatus(TempBlockStatus, GetBall().GetY(), GetBall().GetX(),EMPTY);
   SourceBall.Move();
-  ChangeBlockStatus(TempBlockStatus, GetBall().GetY(), GetBall().GetX(),BALL);
+  AddScore(-1);
+  ChangeBlockStatus(TempBlockStatus, GetBall().GetY(), GetBall().GetX(), BALL);
   SetBlockStatus(TempBlockStatus);
 }
 
@@ -352,15 +364,29 @@ void Board::MoveBar(int Way) {
   SetBlockStatus(NewBlockstatus);
 }
 
+void Board::DrawScore() const {
+  mvwprintw(GetScoreScrPtr(), 1, 1, "SCORE");
+  mvwprintw(GetScoreScrPtr(), 2, 1, "        ");
+  mvwprintw(GetScoreScrPtr(), 2, 1, "%d", GetScore());
+}
+
 bool Board::CheckGameEnd() { return GetBall().GetY() == (DOWNMAX - 2); }
 
-void Board::EndGame() {
-  endwin();
-  std::vector<std::vector<int>> temp = GetBlockStatus();
-    for (int i = 0; i < DOWNMAX; i++) {
-        for (int j = 0; j < RIGHTMAX;j++){
-            std::cout << temp[i][j] << " ";
-        }
-        std::cout << std::endl;
+bool Board::CheckVictory() {
+  for(Brick OneBrick : GetBricks().GetBrickBundle()){
+    if(!OneBrick.GetEmpty()){
+        return false;
     }
+  }
+  return true;
+}
+
+void Board::DeclareVictory() {
+    mvwprintw(GetGameScrPtr(),DOWNMAX/2,(RIGHTMAX-4)/2,"WIN");
+    wrefresh(GetGameScrPtr());
+}
+
+void Board::EndGame() {
+    sleep(3);
+    endwin();
 }

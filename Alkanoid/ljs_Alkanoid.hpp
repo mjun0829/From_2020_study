@@ -129,6 +129,7 @@ private:
   WINDOW *ScoreScreen;
   Bricks SourceBricks;
   std::vector<std::vector<int>> BlockStatus;
+  int Score;
 
 public:
   Board() { InitSetting(); }
@@ -139,6 +140,7 @@ public:
   WINDOW *GetScoreScrPtr() const { return ScoreScreen; }
   Bricks GetBricks() const { return SourceBricks; }
   std::vector<std::vector<int>> GetBlockStatus() const { return BlockStatus; }
+  int GetScore() const { return Score; }
 
   // 프로그램 실행시 WINDOW 포인터 및 공을 생성하는 함수를 실행시키는 함수
   void InitSetting();
@@ -161,6 +163,7 @@ public:
   void SetBlockStatus(std::vector<std::vector<int>> NewBlockStatus){
       BlockStatus=NewBlockStatus;
   }
+  void SetScore(int NewScore) { Score = NewScore; }
 
   // 공을 생성하는 함수
   Ball MakeBall(std::vector<std::vector<int>> &BlockStatus);
@@ -188,6 +191,9 @@ public:
   // pos1,pos2,pos3중 비어있지 않은 위치 중에서 벽돌이라면 해당 벽돌을 찾아서 remove
   void RemoveBricks();
 
+  // Add만큼 점수를 갱신하는 함수
+  void AddScore(int Add);
+
   // 해당 좌표가 벽돌인지 반환하는 함수
   bool IsBrick(int Y, int X);
 
@@ -206,9 +212,6 @@ public:
 
   // SourceBall의 Move함수 호출
   void MoveBall();
-
-  // Ball과 Bar에서 반사되는지 여부를 반환하는 함수
-  bool BallBarReflection();
 
   // SourceBall의 ReflectionX,Y 함수 호출
   void ReflectionX() { SourceBall.ReflectionX(); }
@@ -237,9 +240,19 @@ public:
   // InsertKey를 바탕으로 바의 Move함수 호출하는 함수
   void MoveBar(int Way);
 
+  // 점수를 표시하는 함수
+  void DrawScore() const;
+
   // 공이 벽에 닿았는지 확인하는 함수
   // true라면 PlayBoard()내의 무한루프를 빠져나온다.
   bool CheckGameEnd();
+
+  // 모든 벽돌이 부서졌는데 확인하는 함수
+  // true라면 승리멘트를 보여주고 무한루프를 빠져나온다.
+  bool CheckVictory();
+
+  // 승리시 나오는 멘트를 담고 있는 함수
+  void DeclareVictory();
 
   // 게임 종료시 호출하는 함수
   // 추후 스코어를 보여주는 함수를 출력할 것
