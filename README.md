@@ -1,5 +1,5 @@
 # From_2020_study
-매주 일요일or월요일 9시반 시작 - 17회차 진행됨
+매주 일요일or월요일 9시반 시작 - 21회차 진행됨
 
 **1. 문자열과 string**
 https://docs.google.com/document/d/11FzWOYEqe82-7iXaQ3vncBJhgWsNgMMEmfJ8e3BI3xc/edit?usp=sharing
